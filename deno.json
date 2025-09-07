@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "dev": "deno run -A server/fxdisk-dev.ts",
+    "materialize": "deno run -A server/fxdisk-dev.ts"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.ns", "deno.unstable"],
+    "strict": true
+  }
+}
