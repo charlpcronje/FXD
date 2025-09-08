@@ -16,6 +16,7 @@ export const COMMENT: Record<string, { open?: string; close?: string; line?: str
     jsx: { open: "/*", close: "*/", line: "//" }, tsx: { open: "/*", close: "*/", line: "//" },
     py: { line: "#" }, sh: { line: "#" }, ini: { line: ";" }, php: { open: "/*", close: "*/", line: "//" },
     go: { open: "/*", close: "*/", line: "//" }, cxx: { open: "/*", close: "*/", line: "//" },
+    html: { open: "<!--", close: "-->" }, xml: { open: "<!--", close: "-->" },
     text: { line: "//" }
 };
 
@@ -23,11 +24,13 @@ export const COMMENT: Record<string, { open?: string; close?: string; line?: str
 const snippetIdx = new Map<string, string>();
 
 export function indexSnippet(path: string, id?: string) {
-    const usedId = id ?? $$(path).options()?.id;
+    const node = $$(path).node() as any;
+    const usedId = id ?? node.options?.()?.id ?? node.__meta?.id;
     if (usedId) snippetIdx.set(usedId, path);
 }
 export function removeSnippetIndex(path: string) {
-    const id = $$(path).options()?.id;
+    const node = $$(path).node() as any;
+    const id = node.options?.()?.id ?? node.__meta?.id;
     if (id) snippetIdx.delete(id);
 }
 export function findBySnippetId(id: string) {
@@ -41,9 +44,17 @@ export function onSnippetOptionsChanged(path: string, oldId?: string, newId?: st
     if (newId) snippetIdx.set(newId, path);
 }
 export function onSnippetMoved(oldPath: string, newPath: string) {
-    const id = $$(newPath).options()?.id ?? $$(oldPath).options()?.id;
+    const newNode = $$(newPath).node() as any;
+    const oldNode = $$(oldPath).node() as any;
+    const id = newNode.options?.()?.id ?? newNode.__meta?.id ?? 
+               oldNode.options?.()?.id ?? oldNode.__meta?.id;
     if (!id) return;
     snippetIdx.set(id, newPath);
+}
+
+// Type guard to check if a node is a snippet
+export function isSnippet(node: any): boolean {
+    return !!(node && node.__type === "snippet" && node.__meta?.id !== undefined);
 }
 
 // ——— helpers ———
@@ -54,16 +65,35 @@ export function simpleHash(s: string) { // fast, non-crypto
     return (h >>> 0).toString(16);
 }
 
+// Escape marker attribute values for safe encoding
+export function escapeMarkerValue(value: string): string {
+    // Escape spaces and special characters that could break marker parsing
+    return value
+        .replace(/\\/g, '\\\\')  // Escape backslashes first
+        .replace(/"/g, '\\"')    // Escape quotes
+        .replace(/\s/g, '_')     // Replace spaces with underscores
+        .replace(/=/g, '\\=');   // Escape equals signs
+}
+
+// Unescape marker attribute values
+export function unescapeMarkerValue(value: string): string {
+    return value
+        .replace(/\\=/g, '=')    // Unescape equals signs
+        .replace(/_/g, ' ')      // Replace underscores with spaces
+        .replace(/\\"/g, '"')    // Unescape quotes
+        .replace(/\\\\/g, '\\'); // Unescape backslashes last
+}
+
 export function makeBegin(m: Marker) {
-    const parts = [`id=${m.id}`];
+    const parts = [`id=${escapeMarkerValue(m.id)}`];
     if (m.lang) parts.push(`lang=${m.lang}`);
-    if (m.file) parts.push(`file=${m.file}`);
+    if (m.file) parts.push(`file=${escapeMarkerValue(m.file)}`);
     if (m.checksum) parts.push(`checksum=${m.checksum}`);
     if (m.order !== undefined) parts.push(`order=${m.order}`);
     parts.push(`version=${m.version ?? 1}`);
     return `FX:BEGIN ${parts.join(" ")}`;
 }
-export function makeEnd(m: Marker) { return `FX:END id=${m.id}`; }
+export function makeEnd(m: Marker) { return `FX:END id=${escapeMarkerValue(m.id)}`; }
 
 /** Emit BEGIN/BODY/END using block comments if available else single-line prefix. */
 export function wrapSnippet(id: string, body: string, lang: Lang = "js", meta: Partial<Marker> = {}) {
@@ -87,10 +117,27 @@ export function createSnippet(
     opts: { lang?: Lang; file?: string; id?: string; order?: number; version?: number } = {}
 ) {
     const id = opts.id ?? path;
-    $$(path)
-        .val(body)
-        .setType("snippet")
-        .options({ lang: opts.lang ?? "js", file: opts.file ?? "", id, order: opts.order, version: opts.version ?? 1 });
+    const node = $$(path).node();
+    
+    // Set the value
+    $$(path).val(body);
+    
+    // Set type directly on node
+    node.__type = "snippet";
+    
+    // Store options as metadata on the node
+    const meta = { 
+        lang: opts.lang ?? "js", 
+        file: opts.file ?? "", 
+        id, 
+        order: opts.order, 
+        version: opts.version ?? 1 
+    };
+    (node as any).__meta = meta;
+    
+    // Helper to get options
+    (node as any).options = () => meta;
+    
     indexSnippet(path, id);
     return $$(path);
 }

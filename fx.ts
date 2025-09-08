@@ -32,207 +32,255 @@ const isRel = (u: string) => u.startsWith("/") && !u.startsWith("//");
 const toNumIfStr = (v: any) => (typeof v === "string" && v.trim() !== "" && isFinite(v as any)) ? parseFloat(v as any) : v;
 const safeJson = (v: unknown) => { try { return JSON.stringify(v); } catch { return String(v); } };
 const prop = (o: any, k: string, v: any, enumerable = false) =>
-  Object.defineProperty(o, k, { value: v, configurable: true, writable: false, enumerable });
+    Object.defineProperty(o, k, { value: v, configurable: true, writable: false, enumerable });
 
 /////////////////////
 // Core Structures //
 /////////////////////
 
 export interface FXNode {
-  __id: string;
-  __parent_id: string | null;
-  __nodes: Record<string, FXNode>;
-  __value: any;
-  __type: string | null;
-  __proto: string[];
-  __behaviors: Map<string, any>;
-  __instances: Map<string, any>;
-  __effects: Function[];
-  __watchers: Set<(nv: unknown, ov: unknown) => void>;
-  __meta?: Record<string, any>; // optional metadata (e.g., { can: ['user'] })
+    __id: string;
+    __parent_id: string | null;
+    __nodes: Record<string, FXNode>;
+    __value: any;
+    __type: string | null;
+    __proto: string[];
+    __behaviors: Map<string, any>;
+    __instances: Map<string, any>;
+    __effects: Function[];
+    __watchers: Set<(nv: unknown, ov: unknown) => void>;
+    __meta?: Record<string, any>; // optional metadata (e.g., { can: ['user'] })
 }
 
 export type FXMutableValue = unknown;
 
 export type FXOpts = {
-  default?: any;
-  child?: string;
-  cast?: "number" | "string" | "boolean" | "json" | ((v: any) => any);
-  emptyAs?: Array<"undefined" | "null" | "NaN" | "" | 0 | false>;
-  createIfMissing?: boolean;
+    default?: any;
+    child?: string;
+    cast?: "number" | "string" | "boolean" | "json" | ((v: any) => any);
+    emptyAs?: Array<"undefined" | "null" | "NaN" | "" | 0 | false>;
+    createIfMissing?: boolean;
 };
 
 export interface FXBuiltInViews {
-  str(): string;
-  num(): number;
-  bool(): boolean;
-  raw(): any;
+    str(): string;
+    num(): number;
+    bool(): boolean;
+    raw(): any;
 }
 
 export interface FXNodeProxy<V extends FXMutableValue = any, T = {}> extends FXBuiltInViews {
-  (path: string, value?: any): FXNodeProxy<any, any>;
+    (path: string, value?: any): FXNodeProxy<any, any>;
 
-  val(): V;
-  val(opts: FXOpts): V;
-  val<NewV extends FXMutableValue>(newValue: NewV): FXNodeProxy<NewV, T>;
-  val<NewV extends FXMutableValue>(newValue: NewV, opts: FXOpts): FXNodeProxy<NewV, T>;
+    val(): V;
+    val(opts: FXOpts): V;
+    val<NewV extends FXMutableValue>(newValue: NewV): FXNodeProxy<NewV, T>;
+    val<NewV extends FXMutableValue>(newValue: NewV, opts: FXOpts): FXNodeProxy<NewV, T>;
 
-  set<NewV extends FXMutableValue>(newValue: NewV): FXNodeProxy<NewV, T>;
-  set<NewV extends FXMutableValue>(newValue: NewV, child: string): FXNodeProxy<NewV, T>;
-  set<NewV extends FXMutableValue>(newValue: NewV, opts: FXOpts): FXNodeProxy<NewV, T>;
-  set<NewV extends FXMutableValue>(newValue: NewV, child: string, opts: FXOpts): FXNodeProxy<NewV, T>;
+    set<NewV extends FXMutableValue>(newValue: NewV): FXNodeProxy<NewV, T>;
+    set<NewV extends FXMutableValue>(newValue: NewV, child: string): FXNodeProxy<NewV, T>;
+    set<NewV extends FXMutableValue>(newValue: NewV, opts: FXOpts): FXNodeProxy<NewV, T>;
+    set<NewV extends FXMutableValue>(newValue: NewV, child: string, opts: FXOpts): FXNodeProxy<NewV, T>;
 
-  get(): V;
-  get(defaultValue: any): V;
-  get(defaultValue: any, opts: FXOpts): V;
-  get(child: string): FXNodeProxy<any, any>;
-  get(child: string, opts: FXOpts): FXNodeProxy<any, any>;
-  get(defaultValue: any, child: string): FXNodeProxy<any, any>;
-  get(defaultValue: any, child: string, opts: FXOpts): FXNodeProxy<any, any>;
+    get(): V;
+    get(defaultValue: any): V;
+    get(defaultValue: any, opts: FXOpts): V;
+    get(child: string): FXNodeProxy<any, any>;
+    get(child: string, opts: FXOpts): FXNodeProxy<any, any>;
+    get(defaultValue: any, child: string): FXNodeProxy<any, any>;
+    get(defaultValue: any, child: string, opts: FXOpts): FXNodeProxy<any, any>;
 
-  node(): FXNode;
-  proxy(): this;
-  type(): string | null;
+    node(): FXNode;
+    proxy(): this;
+    type(): string | null;
+    type(newType: string | null): this;
 
-  /** Type-safe instance unwrap: class or name; cross-realm tolerant */
-  as<T>(ctorOrName: { new (...a: any[]): T } | string): T | null;
+    /** Type-safe instance unwrap: class or name; cross-realm tolerant */
+    as<T>(ctorOrName: { new(...a: any[]): T } | string): T | null;
 
-  inherit(...behaviors: any[]): this & T;
-  watch(callback: (newValue: any, oldValue: any) => void): () => void;
-  nodes(): { [key: string]: FXNodeProxy<any, any> };
-
-  /** CSS-style selection or type-based selection helper */
-  select(selector: string | string[]): any;
-  /** Create/return a reactive group from a list of paths */
-  group(paths: string[]): any;
-  /** Convenience to set node type; returns proxy for chaining */
-  setType(t: string): FXNodeProxy<V, T>;
-  /**
-   * Options bag helper.
-   * - options(obj) -> sets child "options" to obj and returns proxy for chaining
-   * - options() -> returns the current options value (if any)
-   */
-  options(o: any): FXNodeProxy<V, T>;
-  options(): any;
+    inherit(...behaviors: any[]): this & T;
+    watch(callback: (newValue: any, oldValue: any) => void): () => void;
+    nodes(): { [key: string]: FXNodeProxy<any, any> };
 }
+
+
+//////////////////////////////////////
+// UI-safe wait + suspend core (FX) //
+//////////////////////////////////////
+function isUIThread(): boolean {
+    // @ts-ignore
+    return typeof window !== "undefined" && !(typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope);
+}
+
+async function uiFriendlyWait(i32: Int32Array, idx: number, expected: number, timeout = Infinity): Promise<"ok" | "timed-out" | "not-equal"> {
+    const anyAtomics: any = Atomics as any;
+    if (typeof anyAtomics.waitAsync === "function") {
+        const res = anyAtomics.waitAsync(i32, idx, expected, timeout);
+        if (res?.async === false) return res.value;
+        return await res.value;
+    }
+    const start = performance.now();
+    while (true) {
+        if (Atomics.load(i32, idx) !== expected) return "ok";
+        if (timeout !== Infinity && performance.now() - start >= timeout) return "timed-out";
+        await new Promise(requestAnimationFrame);
+    }
+}
+
+// --- Suspend/Replay token + helpers ---
+class FXSuspend extends Error {
+    promise: Promise<any>;
+    tag = "FX:SUSPEND";
+    constructor(p: Promise<any>) { super("FX:SUSPEND"); this.promise = p; }
+}
+function isSuspend(e: unknown): e is FXSuspend {
+    return !!e && typeof e === "object" && (e as any).tag === "FX:SUSPEND";
+}
+function schedule(fn: () => void) {
+    requestAnimationFrame(() => Promise.resolve().then(fn));
+}
+function invokeWithSuspendReplay<T extends (...a: any[]) => any>(fn: T, thisArg: any, args: any[]): any {
+    const run = () => {
+        try { return fn.apply(thisArg, args); }
+        catch (e) {
+            if (isSuspend(e)) { e.promise.then(() => schedule(run), () => schedule(run)); return undefined; }
+            throw e;
+        }
+    };
+    return run();
+}
+// expose once for cross-file throws (fx-orm.ts, f-flow.ts)
+; (globalThis as any).FXSuspend = FXSuspend;
+
+
 
 /////////////////////////
 // Sync Module Loader  //
 /////////////////////////
 
 class SyncModuleLoader {
-  private worker: Worker | null = null;
-  private sab: SharedArrayBuffer | null = null;
-  private lock: Int32Array | null = null;
-  private len: Int32Array | null = null;
-  private buf: Uint8Array | null = null;
-  private cache = new Map<string, string>();
+    private worker: Worker | null = null;
+    private sab: SharedArrayBuffer | null = null;
+    private lock: Int32Array | null = null;
+    private len: Int32Array | null = null;
+    private buf: Uint8Array | null = null;
+    private cache = new Map<string, string>();
+    private TIMEOUT_MS = 15000;
 
-  constructor() {
-    if (IS_CLIENT && typeof SharedArrayBuffer !== "undefined") this.initWorker();
-  }
+    constructor() {
+        // Skip Worker initialization in Deno/server environments  
+        // Deno requires module workers which need different initialization
+        if (typeof SharedArrayBuffer !== "undefined" && typeof (globalThis as any).Deno === "undefined") this.initWorker();
+    }
 
-  private initWorker() {
-    this.sab = new SharedArrayBuffer(2 * 1024 * 1024); // 2MB
-    this.lock = new Int32Array(this.sab, 0, 1);
-    this.len = new Int32Array(this.sab, 4, 1);
-    this.buf = new Uint8Array(this.sab, 8);
+    private initWorker() {
+        this.sab = new SharedArrayBuffer(2 * 1024 * 1024); // 2MB mailbox
+        this.lock = new Int32Array(this.sab, 0, 1);
+        this.len = new Int32Array(this.sab, 4, 1);
+        this.buf = new Uint8Array(this.sab, 8);
 
-    const code = `
-      self.onmessage = async (e) => {
-        const { id, url, sab } = e.data;
-        const lock = new Int32Array(sab, 0, 1);
-        const len  = new Int32Array(sab, 4, 1);
-        const buf  = new Uint8Array(sab, 8);
-        try {
-          const res = await fetch(url);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const text = await res.text();
-          const enc = new TextEncoder().encode(text);
-          if (enc.length > buf.length) {
-            Atomics.store(lock, 0, -id); Atomics.notify(lock, 0); return;
-          }
-          buf.set(enc); len[0] = enc.length;
-          Atomics.store(lock, 0, id);
-        } catch (err) {
-          Atomics.store(lock, 0, -id);
+        const code = `
+        const te = new TextEncoder();
+        self.onmessage = async (e) => {
+          const { id, url, sab } = e.data || {};
+          const lock = new Int32Array(sab, 0, 1);
+          const len  = new Int32Array(sab, 4, 1);
+          const buf  = new Uint8Array(sab, 8);
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            const txt = await res.text();
+            const enc = te.encode(txt);
+            if (enc.length > buf.length) { Atomics.store(lock, 0, -id); Atomics.notify(lock, 0, 1); return; }
+            buf.set(enc); len[0] = enc.length; Atomics.store(lock, 0, id);
+          } catch(_e) { Atomics.store(lock, 0, -id); }
+          Atomics.notify(lock, 0, 1);
+        };
+      `;
+        
+        // Check if we're in Deno and use module worker
+        if (typeof (globalThis as any).Deno !== "undefined") {
+            // For Deno, we need to create a temporary file or use a data URL with module type
+            const dataUrl = `data:application/javascript,${encodeURIComponent(code)}`;
+            this.worker = new Worker(dataUrl, { type: "module" });
+        } else {
+            // Browser environment - use classic worker
+            this.worker = new Worker(URL.createObjectURL(new Blob([code], { type: "application/javascript" })));
         }
-        Atomics.notify(lock, 0);
-      };
-    `;
-    const blob = new Blob([code], { type: "application/javascript" });
-    this.worker = new Worker(URL.createObjectURL(blob));
-  }
-
-  loadSync(url: string): string {
-    if (this.cache.has(url)) return this.cache.get(url)!;
-
-    if (IS_SERVER) {
-      let done = false, text = "", err: any;
-      (async () => {
-        try {
-          const r = await fetch(url);
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          text = await r.text();
-        } catch (e) { err = e; }
-        done = true;
-      })();
-      const sleep = (ms: number) => (globalThis as any).Atomics
-        ? Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
-        : new Promise(r => setTimeout(r, ms));
-      // @ts-ignore
-      while (!done) await sleep(2);
-      if (err) throw err;
-      this.cache.set(url, text);
-      return text;
     }
 
-    if (!this.worker || !this.sab || !this.lock || !this.len || !this.buf) {
-      throw new Error("SyncModuleLoader not initialized.");
+    private async fetchIntoCache(url: string, timeoutMs = this.TIMEOUT_MS): Promise<string> {
+        if (!this.worker || !this.sab || !this.lock || !this.len || !this.buf) throw new Error("[FX] Module loader not initialized");
+        const id = Math.floor(Math.random() * 1e9);
+        Atomics.store(this.lock, 0, 0);
+        this.worker.postMessage({ id, url, sab: this.sab });
+
+        if (isUIThread()) {
+            const st = await uiFriendlyWait(this.lock, 0, 0, timeoutMs);
+            if (st !== "ok") throw new Error("[FX] Module load timeout " + url);
+        } else {
+            const r = Atomics.wait(this.lock, 0, 0, timeoutMs);
+            if (r === "timed-out") throw new Error("[FX] Module load timeout " + url);
+        }
+
+        const signal = Atomics.load(this.lock, 0);
+        if (signal !== id) throw new Error("[FX] Worker error or buffer too small for " + url);
+        const n = this.len[0];
+        const text = new TextDecoder().decode(this.buf.subarray(0, n));
+        Atomics.store(this.lock, 0, 0);
+        this.cache.set(url, text);
+        return text;
     }
 
-    const id = Math.floor(Math.random() * 1e9);
-    Atomics.store(this.lock, 0, 0);
-    this.worker.postMessage({ id, url, sab: this.sab });
-    const result = Atomics.wait(this.lock, 0, 0, 15000);
-    if (result === "timed-out") throw new Error("Module load timeout " + url);
+    async loadAsync(url: string, timeoutMs = this.TIMEOUT_MS): Promise<string> {
+        if (this.cache.has(url)) return this.cache.get(url)!;
+        return await this.fetchIntoCache(url, timeoutMs);
+    }
 
-    const signal = Atomics.load(this.lock, 0);
-    if (signal !== id) throw new Error("Worker error or buffer too small for " + url);
+    // UI: never block — start fetch and SUSPEND; Proxy will replay. Worker/Node: safe blocking.
+    loadSync(url: string): string {
+        if (this.cache.has(url)) return this.cache.get(url)!;
 
-    const n = this.len[0];
-    const text = new TextDecoder().decode(this.buf.subarray(0, n));
-    Atomics.store(this.lock, 0, 0);
-    this.cache.set(url, text);
-    return text;
-  }
+        if (isUIThread()) {
+            const p = this.fetchIntoCache(url).catch(() => { });
+            throw new (globalThis as any).FXSuspend(p);
+        }
+
+        // Worker/Node path: fetchIntoCache will use Atomics.wait and return with cache filled
+        let got = "";
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        (async () => { got = await this.fetchIntoCache(url); })();
+        if (this.cache.has(url)) return this.cache.get(url)!;
+        throw new Error("[FX] worker loadSync unexpected fallthrough");
+    }
 }
+
 
 //////////////////////
 // Plugin Management//
 //////////////////////
 
 class PluginManager {
-  private fx: FXCore;
-  private loaded = new Map<string, any>();
-  private prefix = new Map<string, FXNodeProxy>();
+    private fx: FXCore;
+    private loaded = new Map<string, any>();
+    private prefix = new Map<string, FXNodeProxy>();
 
-  constructor(fx: FXCore) { this.fx = fx; }
+    constructor(fx: FXCore) { this.fx = fx; }
 
-  register<T extends object>(name: string, factoryOrObj: any, opts?: { global?: string; prefix?: string }) {
-    if (this.loaded.has(name)) return this.fx.proxy(opts?.prefix ? `${opts.prefix}.${name}` : `plugins.${name}`) as FXNodeProxy<T>;
-    const instance = typeof factoryOrObj === "function" ? factoryOrObj(this.fx) : factoryOrObj;
-    const mount = opts?.prefix ? `${opts.prefix}.${name}` : `plugins.${name}`;
-    const node = this.fx.proxy(mount);
-    node.val(instance);
-    if (instance && typeof instance === "object") this.fx.graftObject(node.node(), instance as any);
-    this.loaded.set(name, instance);
-    if (opts?.global) (globalThis as any)[opts.global] = node;
-    if (opts?.prefix) this.prefix.set(opts.prefix, node);
-    return node as FXNodeProxy<T>;
-  }
+    register<T extends object>(name: string, factoryOrObj: any, opts?: { global?: string; prefix?: string }) {
+        if (this.loaded.has(name)) return this.fx.proxy(opts?.prefix ? `${opts.prefix}.${name}` : `plugins.${name}`) as FXNodeProxy<T>;
+        const instance = typeof factoryOrObj === "function" ? factoryOrObj(this.fx) : factoryOrObj;
+        const mount = opts?.prefix ? `${opts.prefix}.${name}` : `plugins.${name}`;
+        const node = this.fx.proxy(mount);
+        node.val(instance);
+        if (instance && typeof instance === "object") this.fx.graftObject(node.node(), instance as any);
+        this.loaded.set(name, instance);
+        if (opts?.global) (globalThis as any)[opts.global] = node;
+        if (opts?.prefix) this.prefix.set(opts.prefix, node);
+        return node as FXNodeProxy<T>;
+    }
 
-  getByPrefix(prefix: string) { return this.prefix.get(prefix); }
+    getByPrefix(prefix: string) { return this.prefix.get(prefix); }
 }
 
 //////////////
@@ -240,423 +288,440 @@ class PluginManager {
 //////////////
 
 export class FXCore {
-  public root: FXNode;
-  public pluginManager: PluginManager;
-  public moduleLoader: SyncModuleLoader;
+    public root: FXNode;
+    public pluginManager: PluginManager;
+    public moduleLoader: SyncModuleLoader;
 
-  // parent map for O(1) ancestry checks
-  private __parentMap = new Map<string, FXNode>();
+    // parent map for O(1) ancestry checks
+    private __parentMap = new Map<string, FXNode>();
 
-  // structure event bus (batched)
-  private __structureListeners = new Set<(e: {kind: "create"|"remove"|"move"|"mutate", node: FXNode, parent?: FXNode, key?: string}) => void>();
-  private __batchTimer: any = null;
-  private __batchedEvents: any[] = [];
+    // structure event bus (batched)
+    private __structureListeners = new Set<(e: { kind: "create" | "remove" | "move" | "mutate", node: FXNode, parent?: FXNode, key?: string }) => void>();
+    private __batchTimer: any = null;
+    private __batchedEvents: any[] = [];
 
-  constructor() {
-    this.root = this.createNode(null);
-    this.moduleLoader = new SyncModuleLoader();
-    this.pluginManager = new PluginManager(this);
-    this.ensureSystemRoots();
-    this.installDefaults();
-  }
+    constructor() {
+        this.root = this.createNode(null);
+        this.moduleLoader = new SyncModuleLoader();
+        this.pluginManager = new PluginManager(this);
+        this.ensureSystemRoots();
+        this.installDefaults();
+    }
 
-  ensureSystemRoots() {
-    const mk = (n: string) => { if (!this.root.__nodes[n]) { const c = this.createNode(this.root.__id); this.root.__nodes[n] = c; this.__parentMap.set(c.__id, this.root); } };
-    ["app","config","plugins","modules","atomics","dom","session","system","cache","code","views","fs","history"].forEach(mk);
-  }
+    ensureSystemRoots() {
+        const mk = (n: string) => { if (!this.root.__nodes[n]) { const c = this.createNode(this.root.__id); this.root.__nodes[n] = c; this.__parentMap.set(c.__id, this.root); } };
+        ["app", "config", "plugins", "modules", "atomics", "dom", "session", "system", "cache", "code", "views", "fs", "history"].forEach(mk);
+    }
 
-  installDefaults() {
-    // default config (can be overridden by $system.fx.* at runtime)
-    $_$$('config.fx').set({
-      selectors: {
-        // attribute resolution order
-        attrResolution: ["type", "raw", "child"],
-        // allowed attribute operators
-        enabledAttrOps: ["=", "!=", "^=", "$=", "*="],
-        // enable :has()
-        enableHas: false,
-        // .class matches both __type and __proto
-        classMatchesType: true,
-      },
-      groups: {
-        reactiveDefault: true,
-        debounceMs: 20,
-      },
-      performance: {
-        enableParentMap: true,
-        structureBatchMs: 5,
-      }
-    });
-  }
+    installDefaults() {
+        // default config (can be overridden by $system.fx.* at runtime)
+        // Use direct node access instead of $_$$ to avoid circular dependency
+        const configNode = this.setPath('config.fx', {}, this.root);
+        this.set(configNode, {
+            selectors: {
+                // attribute resolution order
+                attrResolution: ["meta", "type", "raw", "child"],
+                // allowed attribute operators
+                enabledAttrOps: ["=", "!=", "^=", "$=", "*="],
+                // enable :has()
+                enableHas: false,
+                // .class matches both __type and __proto
+                classMatchesType: true,
+            },
+            groups: {
+                reactiveDefault: true,
+                debounceMs: 20,
+            },
+            performance: {
+                enableParentMap: true,
+                structureBatchMs: 5,
+            }
+        });
+    }
 
-  public onStructure(cb: (e:{kind:"create"|"remove"|"move"|"mutate", node: FXNode, parent?: FXNode, key?: string}) => void) {
-    this.__structureListeners.add(cb);
-    return () => this.__structureListeners.delete(cb);
-  }
-  private emitStructure(e:any) {
-    const ms = fxCfg('performance.structureBatchMs', 5);
-    this.__batchedEvents.push(e);
-    if (ms <= 0) return this.__flushStructure();
-    if (this.__batchTimer) return;
-    this.__batchTimer = setTimeout(() => this.__flushStructure(), ms);
-  }
-  private __flushStructure() {
-    const list = this.__batchedEvents.splice(0);
-    clearTimeout(this.__batchTimer); this.__batchTimer = null;
-    for (const ev of list) for (const cb of Array.from(this.__structureListeners)) { try { cb(ev); } catch {} }
-  }
+    public onStructure(cb: (e: { kind: "create" | "remove" | "move" | "mutate", node: FXNode, parent?: FXNode, key?: string }) => void) {
+        this.__structureListeners.add(cb);
+        return () => this.__structureListeners.delete(cb);
+    }
+    private emitStructure(e: any) {
+        const ms = fxCfg('performance.structureBatchMs', 5);
+        this.__batchedEvents.push(e);
+        if (ms <= 0) return this.__flushStructure();
+        if (this.__batchTimer) return;
+        this.__batchTimer = setTimeout(() => this.__flushStructure(), ms);
+    }
+    private __flushStructure() {
+        const list = this.__batchedEvents.splice(0);
+        clearTimeout(this.__batchTimer); this.__batchTimer = null;
+        for (const ev of list) for (const cb of Array.from(this.__structureListeners)) { try { cb(ev); } catch { } }
+    }
 
-  createNode(parentId: string | null): FXNode {
-    return {
-      __id: nowId(),
-      __parent_id: parentId,
-      __nodes: Object.create(null),
-      __value: undefined,
-      __type: "raw",
-      __proto: [],
-      __behaviors: new Map(),
-      __instances: new Map(),
-      __effects: [],
-      __watchers: new Set(),
-    };
-  }
+    createNode(parentId: string | null): FXNode {
+        return {
+            __id: nowId(),
+            __parent_id: parentId,
+            __nodes: Object.create(null),
+            __value: undefined,
+            __type: "raw",
+            __proto: [],
+            __behaviors: new Map(),
+            __instances: new Map(),
+            __effects: [],
+            __watchers: new Set(),
+        };
+    }
 
-  graftObject(host: FXNode, obj: Record<string, any>) {
-    for (const k of Object.keys(obj)) this.setPath(k, obj[k], host);
-  }
+    graftObject(host: FXNode, obj: Record<string, any>) {
+        for (const k of Object.keys(obj)) this.setPath(k, obj[k], host);
+    }
 
-  private _finishSet(node: FXNode, old: any) {
-    this.triggerEffects(node, "after.set", "__value", node.__value);
-    node.__watchers.forEach(cb => { try { cb(node.__value, old); } catch (e) { console.error(e); } });
-    this.emitStructure({ kind: "mutate", node });
-  }
+    private _finishSet(node: FXNode, old: any) {
+        this.triggerEffects(node, "after.set", "__value", node.__value);
+        node.__watchers.forEach(cb => { try { cb(node.__value, old); } catch (e) { console.error(e); } });
+        this.emitStructure({ kind: "mutate", node });
+    }
 
-  set(node: FXNode, value: any) {
-    const old = node.__value;
-    this.triggerEffects(node, "before.set", "__value", value);
+    set(node: FXNode, value: any) {
+        const old = node.__value;
+        this.triggerEffects(node, "before.set", "__value", value);
 
-    // FXNode link
-    if (value && typeof value === "object") {
-      const maybe = (value as any).node?.() ?? value;
-      if (maybe?.__id && maybe.__nodes) {
-        node.__type = "FXNode";
-        node.__value = { raw: maybe, FXNode: maybe, stringified: `[FXNode ${maybe.__id}]`, boolean: true };
+        // FXNode link
+        if (value && typeof value === "object") {
+            const maybe = (value as any).node?.() ?? value;
+            if (maybe?.__id && maybe.__nodes) {
+                node.__type = "FXNode";
+                node.__value = { raw: maybe, FXNode: maybe, stringified: `[FXNode ${maybe.__id}]`, boolean: true };
+                return this._finishSet(node, old);
+            }
+        }
+        // Class instance
+        if (value && typeof value === "object" && value.constructor?.name !== "Object") {
+            const cname = value.constructor?.name ?? "Instance";
+            node.__type = cname;
+            node.__value = { [cname]: value, raw: value, stringified: safeJson(value) };
+            node.__instances.set(cname, value);
+            return this._finishSet(node, old);
+        }
+        // Plain object -> store + graft
+        if (value && typeof value === "object" && value.constructor?.name === "Object") {
+            node.__type = "object";
+            node.__value = value;
+            this.graftObject(node, value);
+            return this._finishSet(node, old);
+        }
+        // Primitive/function -> view bag
+        const bag = { raw: value, parsed: toNumIfStr(value), stringified: String(value), boolean: Boolean(value) };
+        node.__type = (typeof bag.parsed === "number" && !Number.isNaN(bag.parsed)) ? "parsed" : "raw";
+        node.__value = bag;
         return this._finishSet(node, old);
-      }
     }
-    // Class instance
-    if (value && typeof value === "object" && value.constructor?.name !== "Object") {
-      const cname = value.constructor?.name ?? "Instance";
-      node.__type = cname;
-      node.__value = { [cname]: value, raw: value, stringified: safeJson(value) };
-      node.__instances.set(cname, value);
-      return this._finishSet(node, old);
+
+    val(node: FXNode): any {
+        const v = node.__value;
+        if (v == null) return v;
+        if (typeof v === "object" && "raw" in (v as any)) {
+            const t = node.__type as string | undefined;
+            if (t && (v as any)[t] !== undefined) return (v as any)[t];
+            return (v as any).raw;
+        }
+        return v;
     }
-    // Plain object -> store + graft
-    if (value && typeof value === "object" && value.constructor?.name === "Object") {
-      node.__type = "object";
-      node.__value = value;
-      this.graftObject(node, value);
-      return this._finishSet(node, old);
+
+    resolvePath(path: string, start: FXNode): FXNode | undefined {
+        const keys = path.split(".").filter(Boolean);
+        let cur: FXNode | undefined = start;
+        for (const k of keys) {
+            if (!cur) return;
+            const v = this.val(cur);
+            if (v?.__id) cur = v;
+            if (!cur?.__nodes[k]) return;
+            cur = cur.__nodes[k];
+        }
+        return cur;
     }
-    // Primitive/function -> view bag
-    const bag = { raw: value, parsed: toNumIfStr(value), stringified: String(value), boolean: Boolean(value) };
-    node.__type = (typeof bag.parsed === "number" && !Number.isNaN(bag.parsed)) ? "parsed" : "raw";
-    node.__value = bag;
-    return this._finishSet(node, old);
-  }
 
-  val(node: FXNode): any {
-    const v = node.__value;
-    if (v == null) return v;
-    if (typeof v === "object" && "raw" in (v as any)) {
-      const t = node.__type as string | undefined;
-      if (t && (v as any)[t] !== undefined) return (v as any)[t];
-      return (v as any).raw;
+    setPath(path: string, value: any, start: FXNode): FXNode {
+        const keys = path.split(".").filter(Boolean);
+        let cur = start;
+        for (const k of keys) {
+            if (!cur.__nodes[k]) {
+                const created = this.createNode(cur.__id);
+                cur.__nodes[k] = created;
+                this.__parentMap.set(created.__id, cur);
+                this.emitStructure({ kind: "create", node: created, parent: cur, key: k });
+            }
+            cur = cur.__nodes[k];
+        }
+        if (value !== undefined) this.set(cur, value);
+        return cur;
     }
-    return v;
-  }
 
-  resolvePath(path: string, start: FXNode): FXNode | undefined {
-    const keys = path.split(".").filter(Boolean);
-    let cur: FXNode | undefined = start;
-    for (const k of keys) {
-      if (!cur) return;
-      const v = this.val(cur);
-      if (v?.__id) cur = v;
-      if (!cur?.__nodes[k]) return;
-      cur = cur.__nodes[k];
+    findParentFast(n: FXNode) {
+        if (!fxCfg('performance.enableParentMap', true)) return null;
+        return this.__parentMap.get(n.__id) || null;
     }
-    return cur;
-  }
 
-  setPath(path: string, value: any, start: FXNode): FXNode {
-    const keys = path.split(".").filter(Boolean);
-    let cur = start;
-    for (const k of keys) {
-      if (!cur.__nodes[k]) {
-        const created = this.createNode(cur.__id);
-        cur.__nodes[k] = created;
-        this.__parentMap.set(created.__id, cur);
-        this.emitStructure({ kind: "create", node: created, parent: cur, key: k });
-      }
-      cur = cur.__nodes[k];
+    triggerEffects(node: FXNode, event: string, key: string, value: any) {
+        const proxy = this.createNodeProxy(node);
+        for (const eff of node.__effects) { try { eff(event, proxy, key, value); } catch (e) { console.error(e); } }
     }
-    if (value !== undefined) this.set(cur, value);
-    return cur;
-  }
 
-  findParentFast(n: FXNode) {
-    if (!fxCfg('performance.enableParentMap', true)) return null;
-    return this.__parentMap.get(n.__id) || null;
-  }
+    createNodeProxy<V extends FXMutableValue, T extends object>(node: FXNode): FXNodeProxy<V, T> {
+        const self = this;
 
-  triggerEffects(node: FXNode, event: string, key: string, value: any) {
-    const proxy = this.createNodeProxy(node);
-    for (const eff of node.__effects) { try { eff(event, proxy, key, value); } catch (e) { console.error(e); } }
-  }
-
-  createNodeProxy<V extends FXMutableValue, T extends object>(node: FXNode): FXNodeProxy<V, T> {
-    const self = this;
-
-    const isOpts = (x: any): x is FXOpts => x && typeof x === "object" && !Array.isArray(x);
-    const isProxy = (v: any) => v && typeof v === "function" && typeof v.node === "function";
-    const isEmpty = (v: any, opts?: FXOpts) => {
-      const rules = opts?.emptyAs ?? ["undefined", "null"];
-      for (const r of rules) {
-        if (r === "undefined" && v === undefined) return true;
-        if (r === "null" && v === null) return true;
-        if (r === "NaN" && typeof v === "number" && Number.isNaN(v)) return true;
-        if (r === "" && v === "") return true;
-        if (r === 0 && v === 0) return true;
-        if (r === false && v === false) return true;
-      }
-      return false;
-    };
-    const cast = (v: any, opts?: FXOpts) => {
-      const c = opts?.cast;
-      if (!c) return v;
-      if (typeof c === "function") return c(v);
-      switch (c) {
-        case "number": return typeof v === "number" ? v : (v === "" || v == null ? NaN : Number(v));
-        case "string": return String(v);
-        case "boolean": return Boolean(v);
-        case "json": try { return typeof v === "string" ? JSON.parse(v) : v; } catch { return v; }
-        default: return v;
-      }
-    };
-    const ensureChild = (p: FXNode, k: string, create: boolean) => {
-      let c = p.__nodes[k];
-      if (!c && create) c = self.setPath(k, undefined, p);
-      return c;
-    };
-
-    const baseFn = (path: string, value?: any): FXNodeProxy => {
-      let target = self.resolvePath(path, node);
-      if (!target) target = self.setPath(path, undefined, node);
-      const proxy = self.createNodeProxy(target);
-      if (value !== undefined) proxy.val(value);
-      return proxy;
-    };
-
-    const builtViews: Record<string, string> = { str: "stringified", num: "parsed", bool: "boolean", raw: "raw" };
-
-    const proxy = new Proxy(baseFn, {
-      apply(_t, _thisArg, args: [string, any?]) { return baseFn(args[0], args[1]); },
-      get(_t, key: string, receiver) {
-        if (key === "val") {
-          return (a?: any, b?: FXOpts) => {
-            const setter = !(a && isOpts(a));
-            if (setter && arguments.length >= 1) {
-              const value = a, opts = b && isOpts(b) ? b : undefined;
-
-              // implicit reactive link
-              if (isProxy(value)) {
-                const prev = (node as any).__linkFrom as undefined | { unwatch: () => void };
-                if (prev) try { prev.unwatch(); } catch {}
-                const fromNode = (value as FXNodeProxy).node();
-                const unwatch = (value as FXNodeProxy).watch((_nv: any) => {
-                  self.set(node, self.val(fromNode));
-                });
-                (node as any).__linkFrom = { unwatch };
-                self.set(node, self.val(fromNode));
-                return receiver;
-              }
-
-              const toSet = isEmpty(value, opts) ? opts?.default : value;
-              self.set(node, cast(toSet, opts));
-              return receiver;
+        const isOpts = (x: any): x is FXOpts => x && typeof x === "object" && !Array.isArray(x);
+        const isProxy = (v: any) => v && typeof v === "function" && typeof v.node === "function";
+        const isEmpty = (v: any, opts?: FXOpts) => {
+            const rules = opts?.emptyAs ?? ["undefined", "null"];
+            for (const r of rules) {
+                if (r === "undefined" && v === undefined) return true;
+                if (r === "null" && v === null) return true;
+                if (r === "NaN" && typeof v === "number" && Number.isNaN(v)) return true;
+                if (r === "" && v === "") return true;
+                if (r === 0 && v === 0) return true;
+                if (r === false && v === false) return true;
             }
-            const opts = a && isOpts(a) ? (a as FXOpts) : undefined;
-            let v = self.val(node);
-            if (isEmpty(v, opts)) v = opts?.default;
-            return cast(v, opts);
-          };
-        }
-        if (key === "set") {
-          return (value: any, b?: any, c?: FXOpts) => {
-            let child: string | undefined; let opts: FXOpts | undefined;
-            if (typeof b === "string") { child = b; opts = isOpts(c) ? c : undefined; } else { opts = isOpts(b) ? b : undefined; }
-            if (opts?.child && !child) child = opts.child;
-
-            // reactive link
-            if (isProxy(value)) {
-              const prev = (node as any).__linkFrom as undefined | { unwatch: () => void };
-              if (prev) try { prev.unwatch(); } catch {}
-              const fromNode = (value as FXNodeProxy).node();
-              const unwatch = (value as FXNodeProxy).watch((_nv: any) => self.set(node, self.val(fromNode)));
-              (node as any).__linkFrom = { unwatch };
-              self.set(node, self.val(fromNode));
-              return receiver;
+            return false;
+        };
+        const cast = (v: any, opts?: FXOpts) => {
+            const c = opts?.cast;
+            if (!c) return v;
+            if (typeof c === "function") return c(v);
+            switch (c) {
+                case "number": return typeof v === "number" ? v : (v === "" || v == null ? NaN : Number(v));
+                case "string": return String(v);
+                case "boolean": return Boolean(v);
+                case "json": try { return typeof v === "string" ? JSON.parse(v) : v; } catch { return v; }
+                default: return v;
             }
-
-            const toSet = isEmpty(value, opts) ? opts?.default : value;
-            const cv = cast(toSet, opts);
-
-            if (child) {
-              const create = opts?.createIfMissing ?? true;
-              const cnode = ensureChild(node, child, create);
-              if (cnode) self.set(cnode, cv);
-              return receiver;
-            }
-            self.set(node, cv); return receiver;
-          };
-        }
-        if (key === "inherit") {
-          return (...behaviors: any[]) => {
-            for (const b of behaviors) {
-              if (b?.name) {
-                node.__behaviors.set(b.name, b);
-                if (!node.__proto.includes(b.name)) node.__proto.push(b.name);
-                if (typeof b.effect === "function") node.__effects.push(b.effect);
-              }
-            }
-            return receiver;
-          };
-        }
-        if (key === "get") {
-          return (a?: any, b?: any, c?: FXOpts) => {
-            let def: any = undefined, child: string | undefined, opts: FXOpts | undefined;
-            if (typeof a === "string" && !isOpts(b)) { child = a; def = b; opts = isOpts(c) ? c : undefined; }
-            else { def = a; if (typeof b === "string") child = b; opts = isOpts(b) ? b : (isOpts(c) ? c : undefined); }
-            if (opts && opts.default !== undefined && def === undefined) def = opts.default;
-
-            if (child) {
-              const create = opts?.createIfMissing ?? true;
-              const cnode = ensureChild(node, child, create);
-              if (!cnode) return undefined;
-              return self.createNodeProxy(cnode);
-            }
-            let v = self.val(node);
-            if (isEmpty(v, opts)) v = def;
-            return cast(v, opts);
-          };
-        }
-        if (key === "node") return () => node;
-        if (key === "proxy") return () => self.createNodeProxy(node);
-        if (key === "type") return () => node.__type;
-
-        // lightweight helpers used by scan code
-        if (key === "setType") {
-          return (t: string) => { node.__type = t; return receiver; };
-        }
-        if (key === "options") {
-          const getSet = (arg?: any) => {
-            // ensure an "options" child exists when setting
-            if (arguments.length >= 1) {
-              const c = ensureChild(node, "options", true)!;
-              self.set(c, arg);
-              return receiver;
-            }
-            const c = node.__nodes["options"];
-            if (!c) return undefined;
-            return self.val(c);
-          };
-          return getSet;
-        }
-
-        if (key === "as") {
-          return <T>(ctorOrName: { new (...a: any[]): T } | string): T | null => {
-            const name = typeof ctorOrName === "string" ? ctorOrName : ctorOrName.name;
-            const cached = node.__instances.get(name);
-            if (cached) return cached as T;
-            const raw = self.val(node);
-            if (typeof ctorOrName !== "string" && raw instanceof ctorOrName) return raw as T;
-            if (raw && raw.constructor && raw.constructor.name === name) return raw as T;
-            return null;
-          };
-        }
-
-        if (key === "watch") return (cb: any) => { node.__watchers.add(cb); return () => node.__watchers.delete(cb); };
-        if (key === "nodes") {
-          return () => {
-            const out: Record<string, FXNodeProxy<any, any>> = {};
-            for (const ck in node.__nodes) out[ck] = self.createNodeProxy(node.__nodes[ck]);
-            return out;
-          };
-        }
-        if (key in builtViews) return () => {
-          const v = node.__value;
-          if (v && typeof v === "object") return (v as any)[builtViews[key]];
-          return v as unknown;
+        };
+        const ensureChild = (p: FXNode, k: string, create: boolean) => {
+            let c = p.__nodes[k];
+            if (!c && create) c = self.setPath(k, undefined, p);
+            return c;
         };
 
-        // --- SELECT / GROUP API ---
-        if (key === "select") {
-          return (selOrType?: string | string[]) => {
-            const g = new Group(self, node);
-            if (typeof selOrType === "string" && /[#\.\[:]/.test(selOrType)) {
-              g.selectCss(selOrType).reactiveMode(true);
-            } else if (selOrType) {
-              g.byType(...(Array.isArray(selOrType) ? selOrType : [selOrType]));
+        const baseFn = (path: string, value?: any): FXNodeProxy => {
+            let target = self.resolvePath(path, node);
+            if (!target) target = self.setPath(path, undefined, node);
+            const proxy = self.createNodeProxy(target);
+            if (value !== undefined) proxy.val(value);
+            return proxy;
+        };
+
+        const builtViews: Record<string, string> = { str: "stringified", num: "parsed", bool: "boolean", raw: "raw" };
+
+        const proxy = new Proxy(baseFn, {
+            apply(_t, _thisArg, args: [string, any?]) { return baseFn(args[0], args[1]); },
+            get(_t, key: string, receiver) {
+                if (key === "val") {
+                    return function(a?: any, b?: FXOpts) {
+                        const setter = !(a && isOpts(a));
+                        if (setter && arguments.length >= 1) {
+                            const value = a, opts = b && isOpts(b) ? b : undefined;
+
+                            // implicit reactive link
+                            if (isProxy(value)) {
+                                const prev = (node as any).__linkFrom as undefined | { unwatch: () => void };
+                                if (prev) try { prev.unwatch(); } catch { }
+                                const fromNode = (value as FXNodeProxy).node();
+                                const unwatch = (value as FXNodeProxy).watch((_nv: any) => {
+                                    self.set(node, self.val(fromNode));
+                                });
+                                (node as any).__linkFrom = { unwatch };
+                                self.set(node, self.val(fromNode));
+                                return receiver;
+                            }
+
+                            const toSet = isEmpty(value, opts) ? opts?.default : value;
+                            self.set(node, cast(toSet, opts));
+                            return receiver;
+                        }
+                        const opts = a && isOpts(a) ? (a as FXOpts) : undefined;
+                        let v = self.val(node);
+                        if (isEmpty(v, opts)) v = opts?.default;
+                        return cast(v, opts);
+                    };
+                }
+                if (key === "set") {
+                    return (value: any, b?: any, c?: FXOpts) => {
+                        let child: string | undefined; let opts: FXOpts | undefined;
+                        if (typeof b === "string") { child = b; opts = isOpts(c) ? c : undefined; } else { opts = isOpts(b) ? b : undefined; }
+                        if (opts?.child && !child) child = opts.child;
+
+                        // reactive link
+                        if (isProxy(value)) {
+                            const prev = (node as any).__linkFrom as undefined | { unwatch: () => void };
+                            if (prev) try { prev.unwatch(); } catch { }
+                            const fromNode = (value as FXNodeProxy).node();
+                            const unwatch = (value as FXNodeProxy).watch((_nv: any) => self.set(node, self.val(fromNode)));
+                            (node as any).__linkFrom = { unwatch };
+                            self.set(node, self.val(fromNode));
+                            return receiver;
+                        }
+
+                        const toSet = isEmpty(value, opts) ? opts?.default : value;
+                        const cv = cast(toSet, opts);
+
+                        if (child) {
+                            const create = opts?.createIfMissing ?? true;
+                            const cnode = ensureChild(node, child, create);
+                            if (cnode) self.set(cnode, cv);
+                            return receiver;
+                        }
+                        self.set(node, cv); return receiver;
+                    };
+                }
+                if (key === "inherit") {
+                    return (...behaviors: any[]) => {
+                        for (const b of behaviors) {
+                            if (b?.name) {
+                                node.__behaviors.set(b.name, b);
+                                if (!node.__proto.includes(b.name)) node.__proto.push(b.name);
+                                if (typeof b.effect === "function") node.__effects.push(b.effect);
+                            }
+                        }
+                        return receiver;
+                    };
+                }
+                if (key === "get") {
+                    return (a?: any, b?: any, c?: FXOpts) => {
+                        let def: any = undefined, child: string | undefined, opts: FXOpts | undefined;
+                        if (typeof a === "string" && !isOpts(b)) { child = a; def = b; opts = isOpts(c) ? c : undefined; }
+                        else { def = a; if (typeof b === "string") child = b; opts = isOpts(b) ? b : (isOpts(c) ? c : undefined); }
+                        if (opts && opts.default !== undefined && def === undefined) def = opts.default;
+
+                        if (child) {
+                            const create = opts?.createIfMissing ?? true;
+                            const cnode = ensureChild(node, child, create);
+                            if (!cnode) return undefined;
+                            return self.createNodeProxy(cnode);
+                        }
+                        let v = self.val(node);
+                        if (isEmpty(v, opts)) v = def;
+                        return cast(v, opts);
+                    };
+                }
+                if (key === "node") return () => node;
+                if (key === "proxy") return () => self.createNodeProxy(node);
+                if (key === "type") {
+                    return function(newType?: string | null) {
+                        if (arguments.length >= 1) {
+                            node.__type = newType;
+                            return receiver;
+                        }
+                        return node.__type;
+                    };
+                }
+
+                if (key === "as") {
+                    return <T>(ctorOrName: { new(...a: any[]): T } | string): T | null => {
+                        const name = typeof ctorOrName === "string" ? ctorOrName : ctorOrName.name;
+                        const cached = node.__instances.get(name);
+                        if (cached) return cached as T;
+                        const raw = self.val(node);
+                        if (typeof ctorOrName !== "string" && raw instanceof ctorOrName) return raw as T;
+                        if (raw && raw.constructor && raw.constructor.name === name) return raw as T;
+                        return null;
+                    };
+                }
+
+                if (key === "watch") return (cb: any) => { node.__watchers.add(cb); return () => node.__watchers.delete(cb); };
+                if (key === "nodes") {
+                    return () => {
+                        const out: Record<string, FXNodeProxy<any, any>> = {};
+                        for (const ck in node.__nodes) out[ck] = self.createNodeProxy(node.__nodes[ck]);
+                        return out;
+                    };
+                }
+                if (key in builtViews) return () => {
+                    const v = node.__value;
+                    if (v && typeof v === "object") return (v as any)[builtViews[key]];
+                    return v as unknown;
+                };
+
+                // --- SELECT / GROUP API ---
+                if (key === "select") {
+                    return (selOrType?: string | string[]) => {
+                        const g = new Group(self, node);
+                        if (typeof selOrType === "string" && /[#\.\[:]/.test(selOrType)) {
+                            g.selectCss(selOrType).reactiveMode(true);
+                        } else if (selOrType) {
+                            g.byType(...(Array.isArray(selOrType) ? selOrType : [selOrType]));
+                        }
+                        return wrapGroup(g.initSelection());
+                    };
+                }
+                if (key === "group") {
+                    return (paths?: string[]) => {
+                        // Check if group already exists on node
+                        if (!paths && (node as any).__group) {
+                            return wrapGroup((node as any).__group);
+                        }
+                        
+                        // Create new group
+                        const g = new Group(self, self.root);
+                        if (paths) {
+                            for (const p of paths) g.addPath(p);
+                        }
+                        
+                        // Store group on node for later retrieval
+                        (node as any).__group = g;
+                        return wrapGroup(g);
+                    };
+                }
+
+                if (node.__behaviors?.has(key)) {
+                    const api = node.__behaviors.get(key);
+                    return new Proxy(api, {
+                        get(t, k: string) {
+                            const m = (t as any)[k];
+                            return typeof m === "function" ? m.bind(receiver) : m;
+                        }
+                    });
+                }
+
+                const cur = self.val(node);
+                if (cur?.__id) return (self.createNodeProxy(cur) as any)[key];
+                if (node.__nodes[key]) return self.createNodeProxy(node.__nodes[key]);
+
+                return (baseFn as any)[key];
             }
-            return wrapGroup(g.initSelection());
-          };
-        }
-        if (key === "group") {
-          return (paths: string[] = []) => {
-            const g = new Group(self, self.root);
-            for (const p of paths) g.addPath(p);
-            return wrapGroup(g);
-          };
-        }
+        });
 
-        if (node.__behaviors?.has(key)) {
-          const api = node.__behaviors.get(key);
-          return new Proxy(api, {
-            get(t, k: string) {
-              const m = (t as any)[k];
-              return typeof m === "function" ? m.bind(receiver) : m;
-            }
-          });
-        }
+        return proxy as any;
+    }
 
-        const cur = self.val(node);
-        if (cur?.__id) return (self.createNodeProxy(cur) as any)[key];
-        if (node.__nodes[key]) return self.createNodeProxy(node.__nodes[key]);
-
-        return (baseFn as any)[key];
-      }
-    });
-
-    return proxy as any;
-  }
-
-  proxy(path?: string) {
-    const root = this.createNodeProxy(this.root);
-    return path ? (root(path) as FXNodeProxy) : root;
-  }
+    proxy(path?: string) {
+        const root = this.createNodeProxy(this.root);
+        return path ? (root(path) as FXNodeProxy) : root;
+    }
 }
 
 //////////////////////////////
 // Config access helper     //
 //////////////////////////////
 
+// Forward declaration - will be initialized later
+let fx: FXCore;
+
 const fxCfg = (path: string, fallback?: any) => {
-  const sys = $_$$(`system.fx.${path}`).val();
-  if (sys !== undefined) return sys;
-  const cfg = $_$$(`config.fx.${path}`).val();
-  return cfg !== undefined ? cfg : fallback;
+    // Avoid using $_$$ during initialization - use fx directly if available
+    if (!fx || !fx.root) return fallback;
+    
+    const sysNode = fx.resolvePath(`system.fx.${path}`, fx.root);
+    if (sysNode) {
+        const sys = fx.val(sysNode);
+        if (sys !== undefined) return sys;
+    }
+    
+    const cfgNode = fx.resolvePath(`config.fx.${path}`, fx.root);
+    if (cfgNode) {
+        const cfg = fx.val(cfgNode);
+        if (cfg !== undefined) return cfg;
+    }
+    
+    return fallback;
 };
 
 //////////////////////////////
@@ -664,80 +729,80 @@ const fxCfg = (path: string, fallback?: any) => {
 //////////////////////////////
 
 type AttachOptions = {
-  type: string;
-  global?: string;
-  instantiateDefault?: boolean | { args?: any[] };
-  mode?: "mixin+type" | "type-only" | "mixin-only";
-  onConflict?: "keep-first" | "overwrite" | "warn-and-namespace";
+    type: string;
+    global?: string;
+    instantiateDefault?: boolean | { args?: any[] };
+    mode?: "mixin+type" | "type-only" | "mixin-only";
+    onConflict?: "keep-first" | "overwrite" | "warn-and-namespace";
 };
 
 function attachNamespaceToNode(
-  fx: FXCore,
-  node: FXNode,
-  ns: any,
-  opts: AttachOptions
+    fx: FXCore,
+    node: FXNode,
+    ns: any,
+    opts: AttachOptions
 ) {
-  const typeName = opts.type;
-  if (!node.__nodes) node.__nodes = Object.create(null);
+    const typeName = opts.type;
+    if (!node.__nodes) node.__nodes = Object.create(null);
 
-  const shape = (ns?.default && typeof ns.default === "object")
-    ? { ...(ns.default), ...Object.fromEntries(Object.entries(ns).filter(([k]) => k !== "default")) }
-    : ns;
+    const shape = (ns?.default && typeof ns.default === "object")
+        ? { ...(ns.default), ...Object.fromEntries(Object.entries(ns).filter(([k]) => k !== "default")) }
+        : ns;
 
-  if (!node.__value || typeof node.__value !== "object" || !("raw" in (node.__value as any))) {
-    node.__value = { raw: node.__value, stringified: String(node.__value), boolean: Boolean(node.__value) };
-  }
-  const bag = node.__value as Record<string, any>;
-  bag[typeName] ??= {};
-
-  if (node.__type == null) node.__type = typeName;
-  else if (node.__type !== typeName && !node.__proto.includes(typeName)) node.__proto.push(typeName);
-
-  const attachFnToNode = (k: string, fn: Function) => {
-    const sub = node.__nodes[k] || (node.__nodes[k] = fx.createNode(node.__id));
-    (sub as any).__value = (...a: any[]) => fn(...a);
-    prop(node, k, (...a: any[]) => fn(...a));
-  };
-  const attachValToNode = (k: string, v: any) => {
-    const sub = node.__nodes[k] || (node.__nodes[k] = fx.createNode(node.__id));
-    (sub as any).__value = v;
-    Object.defineProperty(node, k, { configurable: true, enumerable: false, get: () => v });
-  };
-  const attachIntoTypeSurface = (k: string, v: any) => {
-    const surface = bag[typeName];
-    if (typeof v === "function") surface[k] = v.bind(surface);
-    else surface[k] = v;
-  };
-
-  const onConflict = opts.onConflict ?? "warn-and-namespace";
-  const allowMixin = (k: string) => {
-    if (node.__nodes[k]) {
-      if (onConflict === "overwrite") return true;
-      if (onConflict === "warn-and-namespace") {
-        console.warn(`[FX] Mixin conflict on '${k}' (type '${typeName}'); preserving existing; available via .val().${typeName}.${k}`);
-        return false;
-      }
-      return false; // keep-first
+    if (!node.__value || typeof node.__value !== "object" || !("raw" in (node.__value as any))) {
+        node.__value = { raw: node.__value, stringified: String(node.__value), boolean: Boolean(node.__value) };
     }
-    return true;
-  };
+    const bag = node.__value as Record<string, any>;
+    bag[typeName] ??= {};
 
-  for (const [k, v] of Object.entries(shape)) {
-    attachIntoTypeSurface(k, v);
-    if (opts.mode !== "type-only") {
-      if (typeof v === "function") {
-        if (allowMixin(k)) attachFnToNode(k, v);
-      } else {
-        if (!node.__nodes[k]) attachValToNode(k, v);
-      }
+    if (node.__type == null) node.__type = typeName;
+    else if (node.__type !== typeName && !node.__proto.includes(typeName)) node.__proto.push(typeName);
+
+    const attachFnToNode = (k: string, fn: Function) => {
+        const sub = node.__nodes[k] || (node.__nodes[k] = fx.createNode(node.__id));
+        (sub as any).__value = (...a: any[]) => fn(...a);
+        prop(node, k, (...a: any[]) => fn(...a));
+    };
+    const attachValToNode = (k: string, v: any) => {
+        const sub = node.__nodes[k] || (node.__nodes[k] = fx.createNode(node.__id));
+        (sub as any).__value = v;
+        Object.defineProperty(node, k, { configurable: true, enumerable: false, get: () => v });
+    };
+    const attachIntoTypeSurface = (k: string, v: any) => {
+        const surface = bag[typeName];
+        if (typeof v === "function") surface[k] = v.bind(surface);
+        else surface[k] = v;
+    };
+
+    const onConflict = opts.onConflict ?? "warn-and-namespace";
+    const allowMixin = (k: string) => {
+        if (node.__nodes[k]) {
+            if (onConflict === "overwrite") return true;
+            if (onConflict === "warn-and-namespace") {
+                console.warn(`[FX] Mixin conflict on '${k}' (type '${typeName}'); preserving existing; available via .val().${typeName}.${k}`);
+                return false;
+            }
+            return false; // keep-first
+        }
+        return true;
+    };
+
+    for (const [k, v] of Object.entries(shape)) {
+        attachIntoTypeSurface(k, v);
+        if (opts.mode !== "type-only") {
+            if (typeof v === "function") {
+                if (allowMixin(k)) attachFnToNode(k, v);
+            } else {
+                if (!node.__nodes[k]) attachValToNode(k, v);
+            }
+        }
     }
-  }
 
-  Object.defineProperty(node, typeName, {
-    configurable: true,
-    enumerable: false,
-    get: () => (node.__value as any)[typeName],
-  });
+    Object.defineProperty(node, typeName, {
+        configurable: true,
+        enumerable: false,
+        get: () => (node.__value as any)[typeName],
+    });
 }
 
 /////////////////////////////
@@ -745,76 +810,76 @@ function attachNamespaceToNode(
 /////////////////////////////
 
 type HttpArgs = { method?: string; headers?: Record<string, string>; body?: any; global?: string };
-const toHeaders = (h: Record<string,string>) => { const out = new Headers(); for (const k in h) out.set(k, h[k]); return out; };
+const toHeaders = (h: Record<string, string>) => { const out = new Headers(); for (const k in h) out.set(k, h[k]); return out; };
 const deserialize = (x: any) => (typeof x === "string" ? (() => { try { return JSON.parse(x); } catch { return x; } })() : x);
 
-function serverFetch(url: string, method: string, headers: Record<string,string>, body?: any) {
-  return fetch(url, {
-    method,
-    headers,
-    body: body == null ? undefined :
-      (typeof body === "string" || body instanceof Blob ? body : JSON.stringify(body))
-  });
+function serverFetch(url: string, method: string, headers: Record<string, string>, body?: any) {
+    return fetch(url, {
+        method,
+        headers,
+        body: body == null ? undefined :
+            (typeof body === "string" || body instanceof Blob ? body : JSON.stringify(body))
+    });
 }
 
-type FutureOpts = { targetNode?: FXNode; globalName?: string; onResolve?: (v:any)=>void };
+type FutureOpts = { targetNode?: FXNode; globalName?: string; onResolve?: (v: any) => void };
 function FutureProxy(fx: FXCore, promise: Promise<any>, opts: FutureOpts = {}) {
-  const { targetNode, globalName, onResolve } = opts;
-  const state = { resolved: false, value: undefined as any, error: undefined as any };
-  promise.then(v => {
-    state.resolved = true; state.value = v;
-    if (targetNode) fx.set(targetNode, v);
-    if (globalName) (globalThis as any)[globalName] = v;
-    onResolve?.(v);
-  }).catch(e => { state.resolved = true; state.error = e; if (targetNode) fx.set(targetNode, { error: String(e) }); });
+    const { targetNode, globalName, onResolve } = opts;
+    const state = { resolved: false, value: undefined as any, error: undefined as any };
+    promise.then(v => {
+        state.resolved = true; state.value = v;
+        if (targetNode) fx.set(targetNode, v);
+        if (globalName) (globalThis as any)[globalName] = v;
+        onResolve?.(v);
+    }).catch(e => { state.resolved = true; state.error = e; if (targetNode) fx.set(targetNode, { error: String(e) }); });
 
-  const handler: ProxyHandler<any> = {
-    get(_t, prop) {
-      if (prop === "then") return (cb: (v:any)=>void) => { (!state.resolved) ? promise.then(cb) : cb(state.value); };
-      if (prop === "await") return () => promise;
-      if (!state.resolved) return undefined;
-      const v = state.value, out = (v as any)?.[prop as any];
-      return typeof out === "function" ? out.bind(v) : out;
-    },
-    apply(_t, _this, args) {
-      if (!state.resolved) throw new Error("Future not resolved yet");
-      if (typeof state.value === "function") return state.value(...args);
-      throw new Error("Resolved value is not callable");
-    }
-  };
-  const callable = function (...args: any[]) {
-    if (!state.resolved) throw new Error("Future not resolved yet");
-    if (typeof state.value === "function") return state.value(...args);
-    return state.value;
-  };
-  return new Proxy(callable as any, handler);
+    const handler: ProxyHandler<any> = {
+        get(_t, prop) {
+            if (prop === "then") return (cb: (v: any) => void) => { (!state.resolved) ? promise.then(cb) : cb(state.value); };
+            if (prop === "await") return () => promise;
+            if (!state.resolved) return undefined;
+            const v = state.value, out = (v as any)?.[prop as any];
+            return typeof out === "function" ? out.bind(v) : out;
+        },
+        apply(_t, _this, args) {
+            if (!state.resolved) throw new Error("Future not resolved yet");
+            if (typeof state.value === "function") return state.value(...args);
+            throw new Error("Resolved value is not callable");
+        }
+    };
+    const callable = function (...args: any[]) {
+        if (!state.resolved) throw new Error("Future not resolved yet");
+        if (typeof state.value === "function") return state.value(...args);
+        return state.value;
+    };
+    return new Proxy(callable as any, handler);
 }
 
 function httpCall(url: string, method: string, args: HttpArgs | undefined, fx: FXCore, node: FXNode, forcedGlobal?: string) {
-  const { headers = {}, body, global } = args || {};
-  const g = forcedGlobal || global;
+    const { headers = {}, body, global } = args || {};
+    const g = forcedGlobal || global;
 
-  if (IS_SERVER) {
-    const p = serverFetch(url, method, headers, body).then(async r => {
-      const ct = r.headers.get("content-type") || "";
-      if (ct.includes("application/json")) return r.json();
-      return r.text();
+    if (IS_SERVER) {
+        const p = serverFetch(url, method, headers, body).then(async r => {
+            const ct = r.headers.get("content-type") || "";
+            if (ct.includes("application/json")) return r.json();
+            return r.text();
+        }).then(deserialize);
+        return FutureProxy(fx, p, { targetNode: node, globalName: g });
+    }
+
+    const sameOrigin = isRel(url) ? url : `/fx/proxy?url=${encodeURIComponent(url)}`;
+    const p = fetch(sameOrigin, {
+        method,
+        headers: toHeaders(headers),
+        body: body == null ? undefined : (typeof body === "string" || body instanceof Blob ? body : JSON.stringify(body))
+    }).then(async r => {
+        const ct = r.headers.get("content-type") || "";
+        if (ct.includes("application/json")) return r.json();
+        return r.text();
     }).then(deserialize);
+
     return FutureProxy(fx, p, { targetNode: node, globalName: g });
-  }
-
-  const sameOrigin = isRel(url) ? url : `/fx/proxy?url=${encodeURIComponent(url)}`;
-  const p = fetch(sameOrigin, {
-    method,
-    headers: toHeaders(headers),
-    body: body == null ? undefined : (typeof body === "string" || body instanceof Blob ? body : JSON.stringify(body))
-  }).then(async r => {
-    const ct = r.headers.get("content-type") || "";
-    if (ct.includes("application/json")) return r.json();
-    return r.text();
-  }).then(deserialize);
-
-  return FutureProxy(fx, p, { targetNode: node, globalName: g });
 }
 
 //////////////////////////
@@ -822,139 +887,160 @@ function httpCall(url: string, method: string, args: HttpArgs | undefined, fx: F
 //////////////////////////
 
 function loadModuleSyncDefaultOrNS(fx: FXCore, specUrl: string) {
-  const code = fx.moduleLoader.loadSync(specUrl);
-  const module: { exports: any } = { exports: {} };
-  const exports = module.exports;
-  const fn = new Function("module", "exports", "fx", code);
-  fn.call(exports, module, exports, fx);
-
-  const ns = module.exports || {};
-  const def = Object.prototype.hasOwnProperty.call(ns, "default") ? ns.default : undefined;
-
-  if (typeof def === "function") {
-    for (const [k, v] of Object.entries(ns)) if (k !== "default" && !(k in def)) prop(def, k, v);
-    if (!("new" in def)) prop(def, "new", (...a:any[]) => new (def as any)(...a));
-    prop(def, "ns", ns);
-    return def;
-  }
-  if (def && typeof def === "object") {
-    for (const [k, v] of Object.entries(ns)) if (k !== "default" && !(k in def)) prop(def, k, v);
-    prop(def, "ns", ns);
-    return def;
-  }
-  return ns;
-}
-
-type AttachOptionsFull = AttachOptions & { global?: string };
-
-function buildAtBinding(fx: FXCore, baseNode: FXNode, spec: string) {
-  const isApi = isHttp(spec) || isRel(spec);
-  const ctx: { node: FXNode | undefined; ns: any; opts: AttachOptionsFull | any } = { node: baseNode, ns: undefined, opts: {} };
-
-  function options(o: Partial<AttachOptionsFull>) { ctx.opts = { ...ctx.opts, ...o }; return api; }
-
-  function exportsProxy() {
-    const target = ctx.ns?.default ?? ctx.ns;
-    const handler: ProxyHandler<any> = {
-      get(_t, prop) {
-        if (isApi && typeof prop === "string" && ["get","post","put","patch","delete","fetch"].includes(prop)) {
-          const meth = prop === "fetch" ? "GET" : prop.toUpperCase();
-          if (ctx.node?.__nodes[prop]) return fx.createNodeProxy(ctx.node.__nodes[prop]); // real subnode wins
-          return (args?: HttpArgs) => httpCall(spec, meth, args, fx, ctx.node!, ctx.opts.global);
-        }
-        const val = (ctx.ns?.default && (ctx.ns.default as any)[prop]) ?? (ctx.ns as any)[prop];
-        if (typeof val === "function") return (...a:any[]) => val.apply(ctx.ns.default ?? ctx.ns, a);
-        return val;
-      },
-      apply(_t,_this,args) {
-        const d = ctx.ns?.default;
-        if (typeof d === "function") return d(...args);
-        throw new Error("Default export is not callable.");
-      }
-    };
-    const callable = function (...args:any[]) {
-      const d = ctx.ns?.default;
-      if (typeof d === "function") return d(...args);
-      throw new Error("Default export is not callable.");
-    };
-    return new Proxy(callable as any, handler);
-  }
-
-  function loadModuleAndBind(url: string) {
-    const code = fx.moduleLoader.loadSync(url);
+    const code = fx.moduleLoader.loadSync(specUrl);
     const module: { exports: any } = { exports: {} };
     const exports = module.exports;
     const fn = new Function("module", "exports", "fx", code);
     fn.call(exports, module, exports, fx);
 
-    if (ctx.opts?.instantiateDefault) {
-      const d = module.exports.default;
-      const isClass = typeof d === "function" && /^class\s/.test(Function.prototype.toString.call(d));
-      if (isClass) {
-        const args = typeof ctx.opts.instantiateDefault === "object" ? (ctx.opts.instantiateDefault.args ?? []) : [];
-        module.exports.default = new d(...args);
-      }
+    const ns = module.exports || {};
+    const def = Object.prototype.hasOwnProperty.call(ns, "default") ? ns.default : undefined;
+
+    if (typeof def === "function") {
+        for (const [k, v] of Object.entries(ns)) if (k !== "default" && !(k in def)) prop(def, k, v);
+        if (!("new" in def)) prop(def, "new", (...a: any[]) => new (def as any)(...a));
+        prop(def, "ns", ns);
+        return def;
+    }
+    if (def && typeof def === "object") {
+        for (const [k, v] of Object.entries(ns)) if (k !== "default" && !(k in def)) prop(def, k, v);
+        prop(def, "ns", ns);
+        return def;
+    }
+    return ns;
+}
+
+type AttachOptionsFull = AttachOptions & { global?: string };
+
+function buildAtBinding(fx: FXCore, baseNode: FXNode, spec: string) {
+    const isApi = isHttp(spec) || isRel(spec);
+    const ctx: { node: FXNode | undefined; ns: any; opts: AttachOptionsFull | any } = { node: baseNode, ns: undefined, opts: {} };
+
+    function options(o: Partial<AttachOptionsFull>) { ctx.opts = { ...ctx.opts, ...o }; return api; }
+
+    function exportsProxy() {
+        const target = ctx.ns?.default ?? ctx.ns;
+        const handler: ProxyHandler<any> = {
+            get(_t, prop) {
+                try {
+                    if (isApi && typeof prop === "string" && ["get", "post", "put", "patch", "delete", "fetch"].includes(prop)) {
+                        const meth = prop === "fetch" ? "GET" : prop.toUpperCase();
+                        if (ctx.node?.__nodes[prop]) return fx.createNodeProxy(ctx.node.__nodes[prop]);
+                        return (args?: HttpArgs) => httpCall(spec, meth, args, fx, ctx.node!, ctx.opts.global);
+                    }
+                    const val = (ctx.ns?.default && (ctx.ns.default as any)[prop]) ?? (ctx.ns as any)[prop];
+                    if (typeof val === "function") {
+                        return new Proxy(val, {
+                            apply(target, thisArg, argArray) {
+                                return invokeWithSuspendReplay(target, ctx.ns.default ?? ctx.ns, argArray ?? []);
+                            }
+                        });
+                    }
+                    return val;
+                } catch (e: any) {
+                    if (e?.tag === "FX:SUSPEND") {
+                        const suspend = e;
+                        return new Proxy(function () { }, {
+                            get() { throw suspend; },
+                            apply() { throw suspend; },
+                            construct() { throw suspend; }
+                        });
+                    }
+                    throw e;
+                }
+            },
+            apply(_t, _this, args) {
+                const d = ctx.ns?.default;
+                if (typeof d === "function") {
+                    return invokeWithSuspendReplay(d as any, ctx.ns.default ?? ctx.ns, args ?? []);
+                }
+                throw new Error("Default export is not callable.");
+            }
+        };
+
+        const callable = function (...args: any[]) {
+            const d = ctx.ns?.default;
+            if (typeof d === "function") return d(...args);
+            throw new Error("Default export is not callable.");
+        };
+        return new Proxy(callable as any, handler);
     }
 
-    ctx.ns = module.exports;
-    attachNamespaceToNode(fx, ctx.node!, ctx.ns, { type: ctx.opts?.type || "module", ...ctx.opts });
-    if (ctx.opts?.global) (globalThis as any)[ctx.opts.global] = ctx.ns.default ?? ctx.ns;
-    return exportsProxy();
-  }
+    function loadModuleAndBind(url: string) {
+        const code = fx.moduleLoader.loadSync(url);
+        const module: { exports: any } = { exports: {} };
+        const exports = module.exports;
+        const fn = new Function("module", "exports", "fx", code);
+        fn.call(exports, module, exports, fx);
 
-  function fetchApi(url: string) {
-    const callable:any = {};
-    callable.fetch = (args?: HttpArgs) => httpCall(url, "GET", args, fx, ctx.node!, ctx.opts.global);
-    callable.get   = (args?: HttpArgs) => ctx.node?.__nodes["get"]    ? fx.createNodeProxy(ctx.node.__nodes["get"])    : httpCall(url, "GET", args, fx, ctx.node!, ctx.opts.global);
-    callable.post  = (args?: HttpArgs) => ctx.node?.__nodes["post"]   ? fx.createNodeProxy(ctx.node.__nodes["post"])   : httpCall(url, "POST", args, fx, ctx.node!, ctx.opts.global);
-    callable.put   = (args?: HttpArgs) => ctx.node?.__nodes["put"]    ? fx.createNodeProxy(ctx.node.__nodes["put"])    : httpCall(url, "PUT", args, fx, ctx.node!, ctx.opts.global);
-    callable.patch = (args?: HttpArgs) => ctx.node?.__nodes["patch"]  ? fx.createNodeProxy(ctx.node.__nodes["patch"])  : httpCall(url, "PATCH", args, fx, ctx.node!, ctx.opts.global);
-    callable.delete= (args?: HttpArgs) => ctx.node?.__nodes["delete"] ? fx.createNodeProxy(ctx.node.__nodes["delete"]) : httpCall(url, "DELETE", args, fx, ctx.node!, ctx.opts.global);
-    callable.options = options;
-    return callable;
-  }
+        if (ctx.opts?.instantiateDefault) {
+            const d = module.exports.default;
+            const isClass = typeof d === "function" && /^class\s/.test(Function.prototype.toString.call(d));
+            if (isClass) {
+                const args = typeof ctx.opts.instantiateDefault === "object" ? (ctx.opts.instantiateDefault.args ?? []) : [];
+                module.exports.default = new d(...args);
+            }
+        }
 
-  const api: any = isApi ? fetchApi(spec) : loadModuleAndBind(spec);
-  api.options = options;
-  return api;
+        ctx.ns = module.exports;
+        attachNamespaceToNode(fx, ctx.node!, ctx.ns, { type: ctx.opts?.type || "module", ...ctx.opts });
+        if (ctx.opts?.global) (globalThis as any)[ctx.opts.global] = ctx.ns.default ?? ctx.ns;
+        return exportsProxy();
+    }
+
+    function fetchApi(url: string) {
+        const callable: any = {};
+        callable.fetch = (args?: HttpArgs) => httpCall(url, "GET", args, fx, ctx.node!, ctx.opts.global);
+        callable.get = (args?: HttpArgs) => ctx.node?.__nodes["get"] ? fx.createNodeProxy(ctx.node.__nodes["get"]) : httpCall(url, "GET", args, fx, ctx.node!, ctx.opts.global);
+        callable.post = (args?: HttpArgs) => ctx.node?.__nodes["post"] ? fx.createNodeProxy(ctx.node.__nodes["post"]) : httpCall(url, "POST", args, fx, ctx.node!, ctx.opts.global);
+        callable.put = (args?: HttpArgs) => ctx.node?.__nodes["put"] ? fx.createNodeProxy(ctx.node.__nodes["put"]) : httpCall(url, "PUT", args, fx, ctx.node!, ctx.opts.global);
+        callable.patch = (args?: HttpArgs) => ctx.node?.__nodes["patch"] ? fx.createNodeProxy(ctx.node.__nodes["patch"]) : httpCall(url, "PATCH", args, fx, ctx.node!, ctx.opts.global);
+        callable.delete = (args?: HttpArgs) => ctx.node?.__nodes["delete"] ? fx.createNodeProxy(ctx.node.__nodes["delete"]) : httpCall(url, "DELETE", args, fx, ctx.node!, ctx.opts.global);
+        callable.options = options;
+        return callable;
+    }
+
+    const api: any = isApi ? fetchApi(spec) : loadModuleAndBind(spec);
+    api.options = options;
+    return api;
 }
 
 function patchDollarAtSyntax(fx: FXCore) {
-  const original = fx.proxy(); // root proxy
-  const baseDollar = (path: string) => original(path);
+    const original = fx.proxy(); // root proxy
+    const baseDollar = (path: string) => original(path);
 
-  const dollar = new Proxy(baseDollar as any, {
-    apply(_t, _this, args: [string]) {
-      const s = args[0];
+    const dollar = new Proxy(baseDollar as any, {
+        apply(_t, _this, args: [string]) {
+            return invokeWithSuspendReplay(baseDollar as any, _this, args as any[]);
+        },
+        get(_t, key: string, receiver) {
+            try {
+                const val = Reflect.get(baseDollar as any, key, receiver);
+                if (typeof val === "function") {
+                    return new Proxy(val, {
+                        apply(target, thisArg, argArray) {
+                            return invokeWithSuspendReplay(target, thisArg, argArray ?? []);
+                        }
+                    });
+                }
+                return val;
+            } catch (e: any) {
+                if (e?.tag === "FX:SUSPEND") {
+                    const suspend = e;
+                    return new Proxy(function () { }, {
+                        get() { throw suspend; },
+                        apply() { throw suspend; },
+                        construct() { throw suspend; }
+                    });
+                }
+                throw e;
+            }
+        }
+    });
 
-      // Leading-@ => synchronous module default/NS value returned directly
-      if (typeof s === "string" && s.startsWith("@")) {
-        const spec = s.slice(1).trim();
-        return loadModuleSyncDefaultOrNS(fx, spec);
-      }
 
-      // path@spec => attach to node or API shortcuts
-      if (typeof s === "string" && s.includes("@")) {
-        const idx = s.indexOf("@");
-        const path = s.slice(0, idx).trim();
-        const spec = s.slice(idx + 1).trim();
-        const node = path ? fx.setPath(path, undefined, fx.root) : fx.root;
-        return buildAtBinding(fx, node, spec);
-      }
-
-      return baseDollar(s);
-    },
-    get(_t, key: string) {
-      // $$["@..."] => sync module value
-      if (typeof key === "string" && key.startsWith("@")) {
-        return loadModuleSyncDefaultOrNS(fx, key.slice(1).trim());
-      }
-      return (original as any)[key];
-    }
-  });
-
-  (globalThis as any).$$ = dollar;
-  return dollar as FXNodeProxy;
+    (globalThis as any).$$ = dollar;
+    return dollar as FXNodeProxy;
 }
 
 //////////////////////////////
@@ -962,12 +1048,12 @@ function patchDollarAtSyntax(fx: FXCore) {
 //////////////////////////////
 
 type SelSimple =
-  | { kind: "class"; name: string }
-  | { kind: "id"; id: string }
-  | { kind: "attr"; key: string; op: "="|"!="|"^="|"$="|"*="; value: string }
-  | { kind: "not"; inner: SelCompound }
-  | { kind: "can"; inner: SelSimple }
-  | { kind: "has"; inner: SelCompound };
+    | { kind: "class"; name: string }
+    | { kind: "id"; id: string }
+    | { kind: "attr"; key: string; op: "=" | "!=" | "^=" | "$=" | "*="; value: string }
+    | { kind: "not"; inner: SelCompound }
+    | { kind: "can"; inner: SelSimple }
+    | { kind: "has"; inner: SelCompound };
 
 type SelStep = { simple: SelSimple[] };
 type SelCombinator = "desc" | "child";
@@ -975,189 +1061,192 @@ type SelCompound = { chain: Array<SelStep | SelCombinator> };
 type SelList = SelCompound[];
 
 function parseSelector(input: string): SelList {
-  const tokens = input.split(",").map(s => s.trim()).filter(Boolean);
-  return tokens.map(parseOne);
+    const tokens = input.split(",").map(s => s.trim()).filter(Boolean);
+    return tokens.map(parseOne);
 }
 function parseOne(s: string): SelCompound {
-  const chain: Array<SelStep|SelCombinator> = [];
-  let i = 0;
-  const ws = () => { while (/\s/.test(s[i]||"")) i++; };
-  const readIdent = () => { const m = /^[A-Za-z0-9_\-\$]+/.exec(s.slice(i)); if (!m) return ""; i += m[0].length; return m[0]; };
-  const step: SelStep = { simple: [] };
-  const pushStepIfNeeded = () => { if (step.simple.length) { chain.push({ simple: [...step.simple] }); step.simple.length = 0; } };
+    const chain: Array<SelStep | SelCombinator> = [];
+    let i = 0;
+    const ws = () => { while (/\s/.test(s[i] || "")) i++; };
+    const readIdent = () => { const m = /^[A-Za-z0-9_\-\$]+/.exec(s.slice(i)); if (!m) return ""; i += m[0].length; return m[0]; };
+    const step: SelStep = { simple: [] };
+    const pushStepIfNeeded = () => { if (step.simple.length) { chain.push({ simple: [...step.simple] }); step.simple.length = 0; } };
 
-  while (i < s.length) {
-    ws();
-    const c = s[i];
-    if (!c) break;
-    if (c === '.') {
-      i++; const name = readIdent(); step.simple.push({ kind: "class", name });
-    } else if (c === '#') {
-      i++; const id = readIdent(); step.simple.push({ kind: "id", id });
-    } else if (c === '[') {
-      i++; ws();
-      const key = readIdent(); ws();
-      let op: any = "=";
-      if ("=!^$*".includes(s[i] || "")) {
-        const allowed = new Set(fxCfg('selectors.enabledAttrOps', ["="]));
-        if (s[i] === '=') { op = "="; i++; }
-        else if (s[i] === '!' && s[i+1] === '=') { i+=2; op = "!="; }
-        else if (s[i] === '^' && s[i+1] === '=') { i+=2; op = "^="; }
-        else if (s[i] === '$' && s[i+1] === '=') { i+=2; op = "$="; }
-        else if (s[i] === '*' && s[i+1] === '=') { i+=2; op = "*="; }
-        if (!allowed.has(op)) op = "=";
-      }
-      ws();
-      let value = "";
-      if (s[i] === '"' || s[i] === "'") {
-        const q = s[i++]; const start = i;
-        while (i < s.length && s[i] !== q) i++;
-        value = s.slice(start, i); i++;
-      } else {
-        const m = /^[^\]\s]+/.exec(s.slice(i)); value = m ? m[0] : ""; i += value.length;
-      }
-      ws(); if (s[i] === ']') i++;
-      step.simple.push({ kind: "attr", key, op, value });
-    } else if (c === ':') {
-      i++; const id = readIdent(); ws();
-      if (s[i] === '(') {
-        i++;
-        const inside = readBalanced();
-        if (id === "not") {
-          const inner = parseOne(inside);
-          step.simple.push({ kind: "not", inner });
-        } else if (id === "can") {
-          const innerAst = parseSelector(inside)[0];
-          const firstStep = innerAst?.chain?.find((x:any)=> (x as any).simple) as SelStep;
-          const firstSimple = firstStep?.simple?.[0] as SelSimple;
-          if (firstSimple) step.simple.push({ kind: "can", inner: firstSimple });
-        } else if (id === "has") {
-          const enabled = fxCfg('selectors.enableHas', false);
-          if (enabled) step.simple.push({ kind: "has", inner: parseOne(inside) });
+    while (i < s.length) {
+        ws();
+        const c = s[i];
+        if (!c) break;
+        if (c === '.') {
+            i++; const name = readIdent(); step.simple.push({ kind: "class", name });
+        } else if (c === '#') {
+            i++; const id = readIdent(); step.simple.push({ kind: "id", id });
+        } else if (c === '[') {
+            i++; ws();
+            const key = readIdent(); ws();
+            let op: any = "=";
+            if ("=!^$*".includes(s[i] || "")) {
+                const allowed = new Set(fxCfg('selectors.enabledAttrOps', ["="]));
+                if (s[i] === '=') { op = "="; i++; }
+                else if (s[i] === '!' && s[i + 1] === '=') { i += 2; op = "!="; }
+                else if (s[i] === '^' && s[i + 1] === '=') { i += 2; op = "^="; }
+                else if (s[i] === '$' && s[i + 1] === '=') { i += 2; op = "$="; }
+                else if (s[i] === '*' && s[i + 1] === '=') { i += 2; op = "*="; }
+                if (!allowed.has(op)) op = "=";
+            }
+            ws();
+            let value = "";
+            if (s[i] === '"' || s[i] === "'") {
+                const q = s[i++]; const start = i;
+                while (i < s.length && s[i] !== q) i++;
+                value = s.slice(start, i); i++;
+            } else {
+                const m = /^[^\]\s]+/.exec(s.slice(i)); value = m ? m[0] : ""; i += value.length;
+            }
+            ws(); if (s[i] === ']') i++;
+            step.simple.push({ kind: "attr", key, op, value });
+        } else if (c === ':') {
+            i++; const id = readIdent(); ws();
+            if (s[i] === '(') {
+                i++;
+                const inside = readBalanced();
+                if (id === "not") {
+                    const inner = parseOne(inside);
+                    step.simple.push({ kind: "not", inner });
+                } else if (id === "can") {
+                    const innerAst = parseSelector(inside)[0];
+                    const firstStep = innerAst?.chain?.find((x: any) => (x as any).simple) as SelStep;
+                    const firstSimple = firstStep?.simple?.[0] as SelSimple;
+                    if (firstSimple) step.simple.push({ kind: "can", inner: firstSimple });
+                } else if (id === "has") {
+                    const enabled = fxCfg('selectors.enableHas', false);
+                    if (enabled) step.simple.push({ kind: "has", inner: parseOne(inside) });
+                }
+            }
+            function readBalanced() {
+                let depth = 1, out = "";
+                while (i < s.length && depth > 0) {
+                    if (s[i] === '(') depth++;
+                    else if (s[i] === ')') depth--;
+                    if (depth > 0) out += s[i];
+                    i++;
+                }
+                return out.trim();
+            }
+        } else if (c === '>') {
+            pushStepIfNeeded(); chain.push("child"); i++;
+        } else if (/\s/.test(c)) {
+            pushStepIfNeeded();
+            if (chain.length && chain[chain.length - 1] !== "desc") chain.push("desc");
+            ws();
+        } else {
+            i++;
         }
-      }
-      function readBalanced() {
-        let depth = 1, out = "";
-        while (i < s.length && depth > 0) {
-          if (s[i] === '(') depth++;
-          else if (s[i] === ')') depth--;
-          if (depth > 0) out += s[i];
-          i++;
-        }
-        return out.trim();
-      }
-    } else if (c === '>') {
-      pushStepIfNeeded(); chain.push("child"); i++;
-    } else if (/\s/.test(c)) {
-      pushStepIfNeeded();
-      if (chain.length && chain[chain.length-1] !== "desc") chain.push("desc");
-      ws();
-    } else {
-      i++;
     }
-  }
-  pushStepIfNeeded();
-  return { chain };
+    pushStepIfNeeded();
+    return { chain };
 }
 
 function matchSimple(fx: FXCore, node: FXNode, s: SelSimple): boolean {
-  if (s.kind === "class") {
-    const t = node.__type, protos = node.__proto || [];
-    const matchType = fxCfg('selectors.classMatchesType', true);
-    return (matchType && t === s.name) || protos.includes(s.name);
-  }
-  if (s.kind === "id") return node.__id === s.id;
-  if (s.kind === "attr") {
-    const order = fxCfg('selectors.attrResolution', ["type","raw","child"]);
-    const rawBag = fx.val(node);
-    const typeName = node.__type || null;
-    const typeSurface = (rawBag && typeName && typeof rawBag === "object") ? (rawBag as any)[typeName] : undefined;
-    let found: any;
+    if (s.kind === "class") {
+        const t = node.__type, protos = node.__proto || [];
+        const matchType = fxCfg('selectors.classMatchesType', true);
+        return (matchType && t === s.name) || protos.includes(s.name);
+    }
+    if (s.kind === "id") return node.__id === s.id;
+    if (s.kind === "attr") {
+        const order = fxCfg('selectors.attrResolution', ["meta", "type", "raw", "child"]);
+        const rawBag = fx.val(node);
+        const typeName = node.__type || null;
+        const typeSurface = (rawBag && typeName && typeof rawBag === "object") ? (rawBag as any)[typeName] : undefined;
+        const meta = (node as any).__meta;
+        let found: any;
 
-    for (const where of order) {
-      if (where === "type" && typeSurface && typeof typeSurface === "object" && s.key in typeSurface) { found = (typeSurface as any)[s.key]; break; }
-      if (where === "raw" && rawBag && typeof rawBag === "object" && s.key in (rawBag as any)) { found = (rawBag as any)[s.key]; break; }
-      if (where === "child" && node.__nodes[s.key]) { found = fx.val(node.__nodes[s.key]); break; }
-    }
+        for (const where of order) {
+            if (where === "meta" && meta && typeof meta === "object" && s.key in meta) { found = meta[s.key]; break; }
+            if (where === "type" && typeSurface && typeof typeSurface === "object" && s.key in typeSurface) { found = (typeSurface as any)[s.key]; break; }
+            if (where === "raw" && rawBag && typeof rawBag === "object" && s.key in (rawBag as any)) { found = (rawBag as any)[s.key]; break; }
+            if (where === "child" && node.__nodes[s.key]) { found = fx.val(node.__nodes[s.key]); break; }
+        }
 
-    const val = String(found ?? "");
-    const rhs = s.value;
-    switch (s.op) {
-      case "=":  return val === rhs;
-      case "!=": return val !== rhs;
-      case "^=": return val.startsWith(rhs);
-      case "$=": return val.endsWith(rhs);
-      case "*=": return val.includes(rhs);
-      default:   return false;
+        const val = String(found ?? "");
+        const rhs = s.value;
+        
+        switch (s.op) {
+            case "=": return val === rhs;
+            case "!=": return val !== rhs;
+            case "^=": return val.startsWith(rhs);
+            case "$=": return val.endsWith(rhs);
+            case "*=": return val.includes(rhs);
+            default: return false;
+        }
     }
-  }
-  if (s.kind === "can") {
-    const inner = s.inner;
-    const meta = (node as any).__meta;
-    const can = meta?.can as string[] | undefined;
-    if (inner.kind === "class") return Array.isArray(can) && can.includes(inner.name);
-    return false;
-  }
-  if (s.kind === "has") {
-    if (!fxCfg('selectors.enableHas', false)) return false;
-    const inner = s.inner;
-    const stack = Object.values(node.__nodes);
-    while (stack.length) {
-      const c = stack.pop()!;
-      if (matchCompound(fx, c, inner)) return true;
-      for (const k in c.__nodes) stack.push(c.__nodes[k]);
+    if (s.kind === "can") {
+        const inner = s.inner;
+        const meta = (node as any).__meta;
+        const can = meta?.can as string[] | undefined;
+        if (inner.kind === "class") return Array.isArray(can) && can.includes(inner.name);
+        return false;
     }
+    if (s.kind === "has") {
+        if (!fxCfg('selectors.enableHas', false)) return false;
+        const inner = s.inner;
+        const stack = Object.values(node.__nodes);
+        while (stack.length) {
+            const c = stack.pop()!;
+            if (matchCompound(fx, c, inner)) return true;
+            for (const k in c.__nodes) stack.push(c.__nodes[k]);
+        }
+        return false;
+    }
+    if (s.kind === "not") return !matchCompound(fx, node, s.inner);
     return false;
-  }
-  if (s.kind === "not") return !matchCompound(fx, node, s.inner);
-  return false;
 }
 function matchStep(fx: FXCore, node: FXNode, step: SelStep): boolean {
-  return step.simple.every(s => matchSimple(fx, node, s));
+    return step.simple.every(s => matchSimple(fx, node, s));
 }
 function findParent(fx: FXCore, n: FXNode) {
-  const m = (fx as any).findParentFast?.(n);
-  if (m !== undefined) return m;
-  const stack = [fx.root];
-  while (stack.length) {
-    const cur = stack.pop()!;
-    for (const k in cur.__nodes) {
-      const c = cur.__nodes[k];
-      if (c === n) return cur;
-      stack.push(c);
+    const m = (fx as any).findParentFast?.(n);
+    if (m !== undefined) return m;
+    const stack = [fx.root];
+    while (stack.length) {
+        const cur = stack.pop()!;
+        for (const k in cur.__nodes) {
+            const c = cur.__nodes[k];
+            if (c === n) return cur;
+            stack.push(c);
+        }
     }
-  }
-  return null;
+    return null;
 }
 function matchCompound(fx: FXCore, node: FXNode, ast: SelCompound): boolean {
-  const parts = ast.chain.filter(Boolean);
-  let curNodes: FXNode[] = [node];
-  for (let i = parts.length - 1; i >= 0; i--) {
-    const part = parts[i];
-    if (part === "desc" || part === "child") continue;
-    const step = part as SelStep;
-    curNodes = curNodes.filter(n => matchStep(fx, n, step));
-    if (!curNodes.length) return false;
+    const parts = ast.chain.filter(Boolean);
+    let curNodes: FXNode[] = [node];
+    for (let i = parts.length - 1; i >= 0; i--) {
+        const part = parts[i];
+        if (part === "desc" || part === "child") continue;
+        const step = part as SelStep;
+        curNodes = curNodes.filter(n => matchStep(fx, n, step));
+        if (!curNodes.length) return false;
 
-    const prev = parts[i-1];
-    if (prev === "child") {
-      curNodes = curNodes.map(n => findParent(fx, n)).filter(Boolean) as FXNode[];
-      i--;
-      if (!curNodes.length) return false;
-    } else if (prev === "desc") {
-      const ancestors = new Set<FXNode>();
-      for (const n of curNodes) {
-        let p = findParent(fx, n);
-        while (p) { ancestors.add(p); p = findParent(fx, p); }
-      }
-      curNodes = Array.from(ancestors);
-      i--;
-      if (!curNodes.length) return false;
-    } else {
-      break;
+        const prev = parts[i - 1];
+        if (prev === "child") {
+            curNodes = curNodes.map(n => findParent(fx, n)).filter(Boolean) as FXNode[];
+            i--;
+            if (!curNodes.length) return false;
+        } else if (prev === "desc") {
+            const ancestors = new Set<FXNode>();
+            for (const n of curNodes) {
+                let p = findParent(fx, n);
+                while (p) { ancestors.add(p); p = findParent(fx, p); }
+            }
+            curNodes = Array.from(ancestors);
+            i--;
+            if (!curNodes.length) return false;
+        } else {
+            break;
+        }
     }
-  }
-  return curNodes.length > 0;
+    return curNodes.length > 0;
 }
 
 /////////////////////
@@ -1168,378 +1257,390 @@ type GroupMode = "list" | "set";
 type GroupListener = (g: Group, payload?: any) => void;
 
 class Group {
-  private fx: FXCore;
-  private anchor: FXNode;
-  private members = new Set<FXNode>();          // current reconciled members
-  private perNodeUnwatch = new Map<string, () => void>();
+    private fx: FXCore;
+    private anchor: FXNode;
+    private members = new Set<FXNode>();          // current reconciled members
+    private perNodeUnwatch = new Map<string, () => void>();
 
-  private mode: GroupMode = "list";
-  private deepFlag = false;
-  private listeners = new Map<string, Set<GroupListener>>();
-  private filterFn: ((p: FXNodeProxy) => boolean) | null = null;
-  private typeFilter: string[] | null = null;
+    private mode: GroupMode = "list";
+    private deepFlag = false;
+    private listeners = new Map<string, Set<GroupListener>>();
+    private filterFn: ((p: FXNodeProxy) => boolean) | null = null;
+    private typeFilter: string[] | null = null;
 
-  private reactive = fxCfg('groups.reactiveDefault', true);
-  private debounceMs = fxCfg('groups.debounceMs', 20);
-  private offStructure?: () => void;
+    private reactive = fxCfg('groups.reactiveDefault', true);
+    private debounceMs = fxCfg('groups.debounceMs', 20);
+    private offStructure?: () => void;
 
-  // CSS composition
-  private includeSelectors: SelList[] = [];
-  private excludeSelectors: SelList[] = [];
+    // CSS composition
+    private includeSelectors: SelList[] = [];
+    private excludeSelectors: SelList[] = [];
 
-  // Ordered manual set
-  private manualOrder: string[] = [];
-  private manualSet   = new Set<string>();
+    // Ordered manual set
+    private manualOrder: string[] = [];
+    private manualSet = new Set<string>();
 
-  constructor(fx: FXCore, anchor: FXNode) {
-    this.fx = fx; this.anchor = anchor;
-  }
-
-  // type guards
-  private isPredicate(x: any): x is (p: FXNodeProxy) => boolean {
-    // FXNodeProxy is also a function; it has a .node() method. A user predicate won't.
-    return typeof x === "function" && typeof (x as any).node !== "function";
-  }
-
-  // ---------- selection & filters ----------
-  byType(...types: string[]) { this.typeFilter = types.filter(Boolean); this.reconcile(); return this; }
-  where(fn: (p: FXNodeProxy) => boolean) { this.filterFn = fn; this.reconcile(); return this; }
-  deep(flag = true) { this.deepFlag = flag; this.reconcile(); return this; }
-  modeSet() { this.mode = "set"; return this; }
-  modeList() { this.mode = "list"; return this; }
-
-  reactiveMode(flag = true) { this.reactive = flag; if (flag) this.hook(); else this.unhook(); return this; }
-  debounce(ms: number) { this.debounceMs = ms; return this; }
-
-  selectCss(selector: string) { this.includeSelectors.push(parseSelector(selector)); this.reconcile(); return this; }
-  excludeCss(selector: string) { this.excludeSelectors.push(parseSelector(selector)); this.reconcile(); return this; }
-  removeSelector(selector: string) {
-    const ast = JSON.stringify(parseSelector(selector));
-    this.includeSelectors = this.includeSelectors.filter(s => JSON.stringify(s) !== ast);
-    this.excludeSelectors = this.excludeSelectors.filter(s => JSON.stringify(s) !== ast);
-    this.reconcile(); return this;
-  }
-  clearSelectors(kind: "include" | "exclude" | "all" = "all") {
-    if (kind === "include" || kind === "all") this.includeSelectors = [];
-    if (kind === "exclude" || kind === "all") this.excludeSelectors = [];
-    this.reconcile(); return this;
-  }
-
-  // ---------- manual ordered membership ----------
-  addPath(path: string) { const n = this.fx.resolvePath(path, this.fx.root); if (n) this.add(n); return this; }
-  private idOf(n: FXNode) { return n.__id; }
-  private resolveTarget(t: string | FXNodeProxy | FXNode): FXNode | null {
-    if (!t) return null;
-    if (typeof t === "string") return this.fx.resolvePath(t, this.fx.root) || null;
-    if (typeof t === "function" && typeof (t as any).node === "function") return (t as any).node();
-    const n = t as FXNode;
-    return n?.__id ? n : null;
-  }
-
-  add(target: string | FXNodeProxy | FXNode) {
-    const n = this.resolveTarget(target); if (!n) return this;
-    const id = this.idOf(n);
-    if (!this.manualSet.has(id)) { this.manualSet.add(id); this.manualOrder.push(id); this.emit("change"); }
-    return this;
-  }
-  prepend(target: string | FXNodeProxy | FXNode) {
-    const n = this.resolveTarget(target); if (!n) return this;
-    const id = this.idOf(n);
-    if (!this.manualSet.has(id)) { this.manualSet.add(id); this.manualOrder.unshift(id); this.emit("change"); }
-    return this;
-  }
-  insert(index: number, target: string | FXNodeProxy | FXNode) {
-    const n = this.resolveTarget(target); if (!n) return this;
-    const id = this.idOf(n);
-    if (!this.manualSet.has(id)) {
-      this.manualSet.add(id);
-      const i = Math.max(0, Math.min(index, this.manualOrder.length));
-      this.manualOrder.splice(i, 0, id);
-      this.emit("change");
+    constructor(fx: FXCore, anchor: FXNode) {
+        this.fx = fx; this.anchor = anchor;
     }
-    return this;
-  }
-  addAfter(existing: string | FXNodeProxy | FXNode, target: string | FXNodeProxy | FXNode, opts?: { occurrence?: number }) {
-    const ex = this.resolveTarget(existing); const add = this.resolveTarget(target);
-    if (!ex || !add) return this;
-    const exId = this.idOf(ex), addId = this.idOf(add);
-    let occ = opts?.occurrence ?? 1, pos = -1;
-    for (let i = 0; i < this.manualOrder.length; i++) {
-      if (this.manualOrder[i] === exId && --occ === 0) { pos = i; break; }
+
+    // type guards
+    private isPredicate(x: any): x is (p: FXNodeProxy) => boolean {
+        // FXNodeProxy is also a function; it has a .node() method. A user predicate won't.
+        return typeof x === "function" && typeof (x as any).node !== "function";
     }
-    if (pos === -1) return this.add(add);
-    if (!this.manualSet.has(addId)) {
-      this.manualSet.add(addId);
-      this.manualOrder.splice(pos + 1, 0, addId);
-      this.emit("change");
+
+    // ---------- selection & filters ----------
+    byType(...types: string[]) { this.typeFilter = types.filter(Boolean); this.reconcile(); return this; }
+    where(fn: (p: FXNodeProxy) => boolean) { this.filterFn = fn; this.reconcile(); return this; }
+    deep(flag = true) { this.deepFlag = flag; this.reconcile(); return this; }
+    modeSet() { this.mode = "set"; return this; }
+    modeList() { this.mode = "list"; return this; }
+
+    reactiveMode(flag = true) { this.reactive = flag; if (flag) this.hook(); else this.unhook(); return this; }
+    debounce(ms: number) { this.debounceMs = ms; return this; }
+
+    selectCss(selector: string) { this.includeSelectors.push(parseSelector(selector)); this.reconcile(); return this; }
+    excludeCss(selector: string) { this.excludeSelectors.push(parseSelector(selector)); this.reconcile(); return this; }
+    removeSelector(selector: string) {
+        const ast = JSON.stringify(parseSelector(selector));
+        this.includeSelectors = this.includeSelectors.filter(s => JSON.stringify(s) !== ast);
+        this.excludeSelectors = this.excludeSelectors.filter(s => JSON.stringify(s) !== ast);
+        this.reconcile(); return this;
     }
-    return this;
-  }
-  addBefore(existing: string | FXNodeProxy | FXNode, target: string | FXNodeProxy | FXNode) {
-    const ex = this.resolveTarget(existing); const add = this.resolveTarget(target);
-    if (!ex || !add) return this;
-    const exId = this.idOf(ex), addId = this.idOf(add);
-    const pos = this.manualOrder.indexOf(exId);
-    if (pos < 0) return this.prepend(add);
-    if (!this.manualSet.has(addId)) {
-      this.manualSet.add(addId);
-      this.manualOrder.splice(pos, 0, addId);
-      this.emit("change");
+    clearSelectors(kind: "include" | "exclude" | "all" = "all") {
+        if (kind === "include" || kind === "all") this.includeSelectors = [];
+        if (kind === "exclude" || kind === "all") this.excludeSelectors = [];
+        this.reconcile(); return this;
     }
-    return this;
-  }
-  remove(target: string | FXNodeProxy | FXNode | ((p: FXNodeProxy)=>boolean)) {
-    if (this.isPredicate(target)) {
-      for (let i = this.manualOrder.length - 1; i >= 0; i--) {
-        const id = this.manualOrder[i];
-        const node = this.findById(id);
-        if (node && target(this.fx.createNodeProxy(node))) {
-          this.manualOrder.splice(i, 1); this.manualSet.delete(id);
-        }
-      }
-      this.emit("change");
-      return this;
+
+    // ---------- manual ordered membership ----------
+    addPath(path: string) { const n = this.fx.resolvePath(path, this.fx.root); if (n) this.add(n); return this; }
+    private idOf(n: FXNode) { return n.__id; }
+    private resolveTarget(t: string | FXNodeProxy | FXNode): FXNode | null {
+        if (!t) return null;
+        if (typeof t === "string") return this.fx.resolvePath(t, this.fx.root) || null;
+        if (typeof t === "function" && typeof (t as any).node === "function") return (t as any).node();
+        const n = t as FXNode;
+        return n?.__id ? n : null;
     }
-    const n = this.resolveTarget(target); if (!n) return this;
-    const id = this.idOf(n);
-    if (this.manualSet.has(id)) {
-      this.manualSet.delete(id);
-      const idx = this.manualOrder.indexOf(id);
-      if (idx >= 0) this.manualOrder.splice(idx, 1);
-      this.emit("change");
-    }
-    return this;
-  }
-  clear() { this.manualOrder.length = 0; this.manualSet.clear(); this.emit("change"); return this; }
-  private findById(id: string): FXNode | null {
-    const stack = [this.fx.root];
-    while (stack.length) {
-      const n = stack.pop()!;
-      if (n.__id === id) return n;
-      for (const k in n.__nodes) stack.push(n.__nodes[k]);
-    }
-    return null;
-  }
 
-  // ---------- materialization & reconcile ----------
-  private collectBySelectors(lists: SelList[]): FXNode[] {
-    if (!lists.length) return [];
-    const res: FXNode[] = [];
-    const visit = (n: FXNode) => {
-      for (const k in n.__nodes) {
-        const c = n.__nodes[k];
-        const ok = lists.some(list => list.some(comp => matchCompound(this.fx, c, comp)));
-        if (ok) res.push(c);
-        if (this.deepFlag) visit(c);
-      }
-    };
-    visit(this.anchor);
-    return res;
-  }
-
-  private materialize(): FXNode[] {
-    // 1) manual list in order
-    const out: FXNode[] = [];
-    const seen = new Set<string>();
-    for (const id of this.manualOrder) {
-      const n = this.findById(id); if (!n) continue;
-      out.push(n); seen.add(id);
-    }
-    // 2) includes
-    const inc = this.collectBySelectors(this.includeSelectors);
-    for (const n of inc) {
-      const id = this.idOf(n);
-      if (!seen.has(id)) { out.push(n); seen.add(id); }
-    }
-    // 3) excludes
-    const exc = new Set(this.collectBySelectors(this.excludeSelectors).map(n => this.idOf(n)));
-    const filtered = out.filter(n => !exc.has(this.idOf(n)));
-    return filtered;
-  }
-
-  private scanFallback(): FXNode[] {
-    const res: FXNode[] = [];
-    const visit = (n: FXNode) => {
-      for (const k in n.__nodes) {
-        const c = n.__nodes[k];
-        let ok = true;
-        if (this.typeFilter && this.typeFilter.length) ok = !!c.__type && this.typeFilter.includes(c.__type);
-        if (ok && this.filterFn) ok = this.filterFn(this.fx.createNodeProxy(c));
-        if (ok) res.push(c);
-        if (this.deepFlag) visit(c);
-      }
-    };
-    visit(this.anchor);
-    return res;
-  }
-
-  private scanOnce() {
-    const haveCss = this.includeSelectors.length || this.excludeSelectors.length;
-    return haveCss ? this.materialize() : this.scanFallback();
-  }
-
-  private resubscribe() {
-    for (const un of this.perNodeUnwatch.values()) try { un(); } catch {}
-    this.perNodeUnwatch.clear();
-    for (const n of this.members) {
-      const un = this.fx.createNodeProxy(n).watch((_nv: any) => this.emit("change"));
-      this.perNodeUnwatch.set(n.__id, un);
-    }
-  }
-
-  private reconcile() {
-    const next = new Set(this.scanOnce());
-    let changed = false;
-
-    for (const n of Array.from(this.members)) {
-      if (!next.has(n)) { this.members.delete(n); changed = true; const un = this.perNodeUnwatch.get(n.__id); if (un) { un(); this.perNodeUnwatch.delete(n.__id); } }
-    }
-    for (const n of next) {
-      if (!this.members.has(n)) { this.members.add(n); changed = true; const un = this.fx.createNodeProxy(n).watch((_nv:any)=> this.emit("change")); this.perNodeUnwatch.set(n.__id, un); }
-    }
-    if (changed) this.emit("change");
-  }
-
-  initSelection() { this.reconcile(); if (this.reactive) this.hook(); return this; }
-
-  private isInSubtree(n: FXNode, root: FXNode) {
-    if (n === root) return true;
-    let p = findParent(this.fx, n);
-    while (p) { if (p === root) return true; p = findParent(this.fx, p); }
-    return false;
-  }
-
-  private hook() {
-    if (this.offStructure) return;
-    let pending = false, timer: any = null;
-    const flush = () => { pending = false; timer = null; this.reconcile(); };
-    const schedule = () => {
-      if (pending) return;
-      pending = true;
-      if (this.debounceMs <= 0) flush();
-      else timer = setTimeout(flush, this.debounceMs);
-    };
-
-    this.offStructure = this.fx.onStructure((e) => {
-      if (!this.isInSubtree(e.node, this.anchor)) return;
-      schedule();
-    });
-    this.reconcile();
-  }
-
-  private unhook() {
-    if (this.offStructure) { try { this.offStructure(); } catch {} this.offStructure = undefined; }
-    for (const un of this.perNodeUnwatch.values()) try { un(); } catch {}
-    this.perNodeUnwatch.clear();
-  }
-
-  // ---------- public read ops ----------
-  list(): FXNodeProxy[] {
-    const arr = Array.from(this.members).map(n => this.fx.createNodeProxy(n));
-    return this.mode === "list" ? arr : Array.from(new Set(arr));
-  }
-  private values() { return this.list().map(p => p.val()); }
-  sum() { return this.values().reduce((a: any, b: any) => Number(a) + Number(b), 0); }
-  concat(sep = "") { return this.values().join(sep); }
-  // overloads ensure correct return typing
-  cast(kind: "number"): number[];
-  cast(kind: "string"): string[];
-  cast(kind: "boolean"): boolean[];
-  cast(kind: "number"|"string"|"boolean") { const v = this.values(); if (kind === "number") return v.map(Number); if (kind === "boolean") return v.map(Boolean); return v.map(String); }
-  max() { return Math.max(...(this.cast("number") as number[])); }
-  min() { return Math.min(...(this.cast("number") as number[])); }
-  average() { const a = this.cast("number") as number[]; return a.length ? a.reduce((x,y)=>x+y,0)/a.length : NaN; }
-  sort(dir: "asc"|"desc" = "asc") { const v = [...this.values()].sort((a:any,b:any)=> (a<b?-1:a>b?1:0)); return dir==="asc"?v:v.reverse(); }
-  same(kind: "value"|"type" = "value") {
-    const arr = this.list();
-    if (!arr.length) return true;
-    if (kind === "type") { const t = arr[0].type(); return arr.every(n => n.type() === t); }
-    const v = arr[0].val(); return arr.every(n => n.val() === v);
-  }
-  has(v: any) { return this.values().some(x => x === v); }
-
-  // events
-  on(ev: string, handler: GroupListener | any) {
-    if (!this.listeners.has(ev)) this.listeners.set(ev, new Set());
-    const wrap: GroupListener =
-      typeof handler === "function"
-        ? handler
-        : (g: Group) => {
-            if (ev === "has" && handler?.value !== undefined) {
-              if (g.has(handler.value)) handler.callback?.(g);
-            } else if (ev === "average") {
-              const avg = g.average();
-              if ((handler.equalTo !== undefined && avg === handler.equalTo)
-               || (handler.greaterThan !== undefined && avg > handler.greaterThan)
-               || (handler.lessThan !== undefined && avg < handler.lessThan)) {
-                handler.callback?.(g, avg);
-              }
-            } else {
-              handler?.callback?.(g);
+    add(target: string | FXNodeProxy | FXNode) {
+        const n = this.resolveTarget(target); if (!n) return this;
+        const id = this.idOf(n);
+        if (!this.manualSet.has(id)) { 
+            this.manualSet.add(id); 
+            this.manualOrder.push(id); 
+            // Add to members immediately for manual additions
+            if (!this.members.has(n)) {
+                this.members.add(n);
+                const un = this.fx.createNodeProxy(n).watch((_nv: any) => this.emit("change"));
+                this.perNodeUnwatch.set(n.__id, un);
             }
-          };
-    this.listeners.get(ev)!.add(wrap);
-    return () => this.off(ev, wrap);
-  }
-  off(ev: string, handler: GroupListener) { this.listeners.get(ev)?.delete(handler); }
-  emit(ev: string) { const ls = this.listeners.get(ev); if (!ls) return; for (const h of Array.from(ls)) try { h(this); } catch (e) { console.error(e); } }
+            this.emit("change"); 
+        }
+        return this;
+    }
+    prepend(target: string | FXNodeProxy | FXNode) {
+        const n = this.resolveTarget(target); if (!n) return this;
+        const id = this.idOf(n);
+        if (!this.manualSet.has(id)) { this.manualSet.add(id); this.manualOrder.unshift(id); this.emit("change"); }
+        return this;
+    }
+    insert(index: number, target: string | FXNodeProxy | FXNode) {
+        const n = this.resolveTarget(target); if (!n) return this;
+        const id = this.idOf(n);
+        if (!this.manualSet.has(id)) {
+            this.manualSet.add(id);
+            const i = Math.max(0, Math.min(index, this.manualOrder.length));
+            this.manualOrder.splice(i, 0, id);
+            this.emit("change");
+        }
+        return this;
+    }
+    addAfter(existing: string | FXNodeProxy | FXNode, target: string | FXNodeProxy | FXNode, opts?: { occurrence?: number }) {
+        const ex = this.resolveTarget(existing); const add = this.resolveTarget(target);
+        if (!ex || !add) return this;
+        const exId = this.idOf(ex), addId = this.idOf(add);
+        let occ = opts?.occurrence ?? 1, pos = -1;
+        for (let i = 0; i < this.manualOrder.length; i++) {
+            if (this.manualOrder[i] === exId && --occ === 0) { pos = i; break; }
+        }
+        if (pos === -1) return this.add(add);
+        if (!this.manualSet.has(addId)) {
+            this.manualSet.add(addId);
+            this.manualOrder.splice(pos + 1, 0, addId);
+            this.emit("change");
+        }
+        return this;
+    }
+    addBefore(existing: string | FXNodeProxy | FXNode, target: string | FXNodeProxy | FXNode) {
+        const ex = this.resolveTarget(existing); const add = this.resolveTarget(target);
+        if (!ex || !add) return this;
+        const exId = this.idOf(ex), addId = this.idOf(add);
+        const pos = this.manualOrder.indexOf(exId);
+        if (pos < 0) return this.prepend(add);
+        if (!this.manualSet.has(addId)) {
+            this.manualSet.add(addId);
+            this.manualOrder.splice(pos, 0, addId);
+            this.emit("change");
+        }
+        return this;
+    }
+    remove(target: string | FXNodeProxy | FXNode | ((p: FXNodeProxy) => boolean)) {
+        if (this.isPredicate(target)) {
+            for (let i = this.manualOrder.length - 1; i >= 0; i--) {
+                const id = this.manualOrder[i];
+                const node = this.findById(id);
+                if (node && target(this.fx.createNodeProxy(node))) {
+                    this.manualOrder.splice(i, 1); this.manualSet.delete(id);
+                }
+            }
+            this.emit("change");
+            return this;
+        }
+        const n = this.resolveTarget(target); if (!n) return this;
+        const id = this.idOf(n);
+        if (this.manualSet.has(id)) {
+            this.manualSet.delete(id);
+            const idx = this.manualOrder.indexOf(id);
+            if (idx >= 0) this.manualOrder.splice(idx, 1);
+            this.emit("change");
+        }
+        return this;
+    }
+    clear() { this.manualOrder.length = 0; this.manualSet.clear(); this.emit("change"); return this; }
+    private findById(id: string): FXNode | null {
+        const stack = [this.fx.root];
+        while (stack.length) {
+            const n = stack.pop()!;
+            if (n.__id === id) return n;
+            for (const k in n.__nodes) stack.push(n.__nodes[k]);
+        }
+        return null;
+    }
+
+    // ---------- materialization & reconcile ----------
+    private collectBySelectors(lists: SelList[]): FXNode[] {
+        if (!lists.length) return [];
+        const res: FXNode[] = [];
+        const visit = (n: FXNode) => {
+            for (const k in n.__nodes) {
+                const c = n.__nodes[k];
+                const ok = lists.some(list => list.some(comp => matchCompound(this.fx, c, comp)));
+                if (ok) res.push(c);
+                // Always traverse deep when using CSS selectors
+                visit(c);
+            }
+        };
+        visit(this.anchor);
+        return res;
+    }
+
+    private materialize(): FXNode[] {
+        // 1) manual list in order
+        const out: FXNode[] = [];
+        const seen = new Set<string>();
+        for (const id of this.manualOrder) {
+            const n = this.findById(id); if (!n) continue;
+            out.push(n); seen.add(id);
+        }
+        // 2) includes
+        const inc = this.collectBySelectors(this.includeSelectors);
+        for (const n of inc) {
+            const id = this.idOf(n);
+            if (!seen.has(id)) { out.push(n); seen.add(id); }
+        }
+        // 3) excludes
+        const exc = new Set(this.collectBySelectors(this.excludeSelectors).map(n => this.idOf(n)));
+        const filtered = out.filter(n => !exc.has(this.idOf(n)));
+        return filtered;
+    }
+
+    private scanFallback(): FXNode[] {
+        const res: FXNode[] = [];
+        const visit = (n: FXNode) => {
+            for (const k in n.__nodes) {
+                const c = n.__nodes[k];
+                let ok = true;
+                if (this.typeFilter && this.typeFilter.length) ok = !!c.__type && this.typeFilter.includes(c.__type);
+                if (ok && this.filterFn) ok = this.filterFn(this.fx.createNodeProxy(c));
+                if (ok) res.push(c);
+                if (this.deepFlag) visit(c);
+            }
+        };
+        visit(this.anchor);
+        return res;
+    }
+
+    private scanOnce() {
+        const haveCss = this.includeSelectors.length || this.excludeSelectors.length;
+        return haveCss ? this.materialize() : this.scanFallback();
+    }
+
+    private resubscribe() {
+        for (const un of this.perNodeUnwatch.values()) try { un(); } catch { }
+        this.perNodeUnwatch.clear();
+        for (const n of this.members) {
+            const un = this.fx.createNodeProxy(n).watch((_nv: any) => this.emit("change"));
+            this.perNodeUnwatch.set(n.__id, un);
+        }
+    }
+
+    private reconcile() {
+        const next = new Set(this.scanOnce());
+        let changed = false;
+
+        for (const n of Array.from(this.members)) {
+            if (!next.has(n)) { this.members.delete(n); changed = true; const un = this.perNodeUnwatch.get(n.__id); if (un) { un(); this.perNodeUnwatch.delete(n.__id); } }
+        }
+        for (const n of next) {
+            if (!this.members.has(n)) { this.members.add(n); changed = true; const un = this.fx.createNodeProxy(n).watch((_nv: any) => this.emit("change")); this.perNodeUnwatch.set(n.__id, un); }
+        }
+        if (changed) this.emit("change");
+    }
+
+    initSelection() { this.reconcile(); if (this.reactive) this.hook(); return this; }
+
+    private isInSubtree(n: FXNode, root: FXNode) {
+        if (n === root) return true;
+        let p = findParent(this.fx, n);
+        while (p) { if (p === root) return true; p = findParent(this.fx, p); }
+        return false;
+    }
+
+    private hook() {
+        if (this.offStructure) return;
+        let pending = false, timer: any = null;
+        const flush = () => { pending = false; timer = null; this.reconcile(); };
+        const schedule = () => {
+            if (pending) return;
+            pending = true;
+            if (this.debounceMs <= 0) flush();
+            else timer = setTimeout(flush, this.debounceMs);
+        };
+
+        this.offStructure = this.fx.onStructure((e) => {
+            if (!this.isInSubtree(e.node, this.anchor)) return;
+            schedule();
+        });
+        this.reconcile();
+    }
+
+    private unhook() {
+        if (this.offStructure) { try { this.offStructure(); } catch { } this.offStructure = undefined; }
+        for (const un of this.perNodeUnwatch.values()) try { un(); } catch { }
+        this.perNodeUnwatch.clear();
+    }
+
+    // ---------- public read ops ----------
+    list(): FXNodeProxy[] {
+        const arr = Array.from(this.members).map(n => this.fx.createNodeProxy(n));
+        return this.mode === "list" ? arr : Array.from(new Set(arr));
+    }
+    private values() { return this.list().map(p => p.val()); }
+    sum() { return this.values().reduce((a: any, b: any) => Number(a) + Number(b), 0); }
+    concat(sep = "") { return this.values().join(sep); }
+    // overloads ensure correct return typing
+    cast(kind: "number"): number[];
+    cast(kind: "string"): string[];
+    cast(kind: "boolean"): boolean[];
+    cast(kind: "number" | "string" | "boolean") { const v = this.values(); if (kind === "number") return v.map(Number); if (kind === "boolean") return v.map(Boolean); return v.map(String); }
+    max() { return Math.max(...(this.cast("number") as number[])); }
+    min() { return Math.min(...(this.cast("number") as number[])); }
+    average() { const a = this.cast("number") as number[]; return a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN; }
+    sort(dir: "asc" | "desc" = "asc") { const v = [...this.values()].sort((a: any, b: any) => (a < b ? -1 : a > b ? 1 : 0)); return dir === "asc" ? v : v.reverse(); }
+    same(kind: "value" | "type" = "value") {
+        const arr = this.list();
+        if (!arr.length) return true;
+        if (kind === "type") { const t = arr[0].type(); return arr.every(n => n.type() === t); }
+        const v = arr[0].val(); return arr.every(n => n.val() === v);
+    }
+    has(v: any) { return this.values().some(x => x === v); }
+
+    // events
+    on(ev: string, handler: GroupListener | any) {
+        if (!this.listeners.has(ev)) this.listeners.set(ev, new Set());
+        const wrap: GroupListener =
+            typeof handler === "function"
+                ? handler
+                : (g: Group) => {
+                    if (ev === "has" && handler?.value !== undefined) {
+                        if (g.has(handler.value)) handler.callback?.(g);
+                    } else if (ev === "average") {
+                        const avg = g.average();
+                        if ((handler.equalTo !== undefined && avg === handler.equalTo)
+                            || (handler.greaterThan !== undefined && avg > handler.greaterThan)
+                            || (handler.lessThan !== undefined && avg < handler.lessThan)) {
+                            handler.callback?.(g, avg);
+                        }
+                    } else {
+                        handler?.callback?.(g);
+                    }
+                };
+        this.listeners.get(ev)!.add(wrap);
+        return () => this.off(ev, wrap);
+    }
+    off(ev: string, handler: GroupListener) { this.listeners.get(ev)?.delete(handler); }
+    emit(ev: string) { const ls = this.listeners.get(ev); if (!ls) return; for (const h of Array.from(ls)) try { h(this); } catch (e) { console.error(e); } }
 }
 
 function wrapGroup(g: Group) {
-  return {
-    // membership (paths or proxies)
-    add: (t:any) => { g.add(t); return wrapGroup(g); },
-    insert: (i:number, t:any) => { g.insert(i, t); return wrapGroup(g); },
-    addAfter: (ex:any, t:any, o?:{occurrence?:number}) => { g.addAfter(ex, t, o); return wrapGroup(g); },
-    addBefore: (ex:any, t:any) => { g.addBefore(ex, t); return wrapGroup(g); },
-    prepend: (t:any) => { g.prepend(t); return wrapGroup(g); },
-    remove: (t:any) => { g.remove(t); return wrapGroup(g); },
-    clear: () => { g.clear(); return wrapGroup(g); },
+    return {
+        // membership (paths or proxies)
+        add: (t: any) => { g.add(t); return wrapGroup(g); },
+        insert: (i: number, t: any) => { g.insert(i, t); return wrapGroup(g); },
+        addAfter: (ex: any, t: any, o?: { occurrence?: number }) => { g.addAfter(ex, t, o); return wrapGroup(g); },
+        addBefore: (ex: any, t: any) => { g.addBefore(ex, t); return wrapGroup(g); },
+        prepend: (t: any) => { g.prepend(t); return wrapGroup(g); },
+        remove: (t: any) => { g.remove(t); return wrapGroup(g); },
+        clear: () => { g.clear(); return wrapGroup(g); },
 
-    // composition (CSS)
-    select: (cssOrType?: string | string[]) => {
-      if (typeof cssOrType === "string" && /[#\.\[:]/.test(cssOrType)) g.selectCss(cssOrType);
-      else if (cssOrType) g.byType(...(Array.isArray(cssOrType) ? cssOrType : [cssOrType]));
-      return wrapGroup(g.initSelection());
-    },
-    include: (css: string) => { g.selectCss(css); return wrapGroup(g); },
-    exclude: (css: string) => { g.excludeCss(css); return wrapGroup(g); },
-    removeSelector: (css: string) => { g.removeSelector(css); return wrapGroup(g); },
-    clearSelectors: (kind?: "include"|"exclude"|"all") => { g.clearSelectors(kind); return wrapGroup(g); },
+        // composition (CSS)
+        select: (cssOrType?: string | string[]) => {
+            if (typeof cssOrType === "string" && /[#\.\[:]/.test(cssOrType)) g.selectCss(cssOrType);
+            else if (cssOrType) g.byType(...(Array.isArray(cssOrType) ? cssOrType : [cssOrType]));
+            return wrapGroup(g.initSelection());
+        },
+        include: (css: string) => { g.selectCss(css); g.initSelection(); return wrapGroup(g); },
+        exclude: (css: string) => { g.excludeCss(css); return wrapGroup(g); },
+        removeSelector: (css: string) => { g.removeSelector(css); return wrapGroup(g); },
+        clearSelectors: (kind?: "include" | "exclude" | "all") => { g.clearSelectors(kind); return wrapGroup(g); },
 
-    // config
-    options: (o:{mode?: "set"|"list"}) => { if (o.mode === "set") g.modeSet(); else if (o.mode === "list") g.modeList(); return wrapGroup(g); },
-    deep: (flag = true) => { g.deep(flag); return wrapGroup(g); },
-    where: (fn:(p: FXNodeProxy)=>boolean) => { g.where(fn); return wrapGroup(g); },
-    reactive: (flag = true) => { g.reactiveMode(flag); return wrapGroup(g); },
-    debounce: (ms:number) => { g.debounce(ms); return wrapGroup(g); },
-    name: (_n: string) => wrapGroup(g),
+        // config
+        options: (o: { mode?: "set" | "list" }) => { if (o.mode === "set") g.modeSet(); else if (o.mode === "list") g.modeList(); return wrapGroup(g); },
+        deep: (flag = true) => { g.deep(flag); return wrapGroup(g); },
+        where: (fn: (p: FXNodeProxy) => boolean) => { g.where(fn); return wrapGroup(g); },
+        reactive: (flag = true) => { g.reactiveMode(flag); return wrapGroup(g); },
+        debounce: (ms: number) => { g.debounce(ms); return wrapGroup(g); },
+        name: (_n: string) => wrapGroup(g),
 
-    // events
-    on: (ev: string, h:any) => g.on(ev, h),
-    off: (ev: string, h:any) => g.off(ev, h),
+        // events
+        on: (ev: string, h: any) => g.on(ev, h),
+        off: (ev: string, h: any) => g.off(ev, h),
 
-    // access & ops
-    list: () => g.list(),
-    sum: () => g.sum(),
-    concat: (sep?:string) => g.concat(sep),
-    cast: (k:"number"|"string"|"boolean") => g.cast(k as any),
-    max: ()=> g.max(),
-    min: ()=> g.min(),
-    average: ()=> g.average(),
-    sort: (dir?: "asc"|"desc") => g.sort(dir),
-    same: (kind?: "value"|"type") => g.same(kind ?? "value"),
-    hasValue: (v:any)=> g.has(v),
+        // access & ops
+        list: () => g.list(),
+        sum: () => g.sum(),
+        concat: (sep?: string) => g.concat(sep),
+        cast: (k: "number" | "string" | "boolean") => g.cast(k as any),
+        max: () => g.max(),
+        min: () => g.min(),
+        average: () => g.average(),
+        sort: (dir?: "asc" | "desc") => g.sort(dir),
+        same: (kind?: "value" | "type") => g.same(kind ?? "value"),
+        hasValue: (v: any) => g.has(v),
 
-    _group: g,
-  };
+        _group: g,
+    };
 }
 
 /////////////////////////////
 // Globals & Bootstrapping //
 /////////////////////////////
 
-export const fx = new FXCore();
+fx = new FXCore();
+export { fx };
 export const $_$$ = fx.createNodeProxy(fx.root);
 fx.ensureSystemRoots();
 
@@ -1552,6 +1653,12 @@ export const $val = (path: string, value?: any, def?: any) => { const r = $$(pat
 export const $set = (path: string, value: any) => $$(path).set(value);
 export const $get = (path: string) => $$(path).get();
 export const $has = (path: string) => $$(path).val() !== undefined;
+export const $type = function(path: string, newType?: string | null) {
+    if (arguments.length >= 2) {
+        return $$(path).type(newType);
+    }
+    return $$(path).type();
+};
 
 // convenience globals
 export const $app = $_$$('app');
@@ -1564,7 +1671,7 @@ export const $session = $_$$('session');
 export const $system = $_$$('system');
 export const $cache = $_$$('cache');
 
-Object.assign(globalThis as any, { fx, $_$$, $$, $root, $val, $set, $get, $has, $app, $config, $plugins, $modules, $atomics, $dom, $session, $system, $cache });
+Object.assign(globalThis as any, { fx, $_$$, $$, $root, $val, $set, $get, $has, $type, $app, $config, $plugins, $modules, $atomics, $dom, $session, $system, $cache });
 
 // Enable @-syntax (module loading + API shortcuts)
 $$ = patchDollarAtSyntax(fx);
@@ -1573,72 +1680,73 @@ $$ = patchDollarAtSyntax(fx);
 // Optional Deno srv //
 ///////////////////////
 
-if (IS_SERVER && (globalThis as any).Deno?.serve) {
-  const PORT = Number((globalThis as any).Deno.env.get("PORT") || "8787");
+// Only start server if FX_SERVE environment variable is set or this is the main module
+if (IS_SERVER && (globalThis as any).Deno?.serve && ((globalThis as any).Deno.env.get("FX_SERVE") === "true" || import.meta.main)) {
+    const PORT = Number((globalThis as any).Deno.env.get("PORT") || "8787");
 
-  (globalThis as any).Deno.serve({ port: PORT }, async (req: Request) => {
-    const url = new URL(req.url);
-    const path = url.pathname;
+    (globalThis as any).Deno.serve({ port: PORT }, async (req: Request) => {
+        const url = new URL(req.url);
+        const path = url.pathname;
 
-    if (req.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
-    if (path === "/fx/health") return cors(json({ ok: true, time: new Date().toISOString() }));
+        if (req.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
+        if (path === "/fx/health") return cors(json({ ok: true, time: new Date().toISOString() }));
 
-    if (path === "/fx/proxy") {
-      const target = url.searchParams.get("url");
-      if (!target) return cors(json({ error: "Missing url" }, 400));
-      try {
-        const body = await maybeBody(req);
-        const headers = new Headers(req.headers);
-        headers.delete("host"); headers.delete("origin"); headers.delete("referer");
-        const r = await fetch(target, { method: req.method, headers, body: body?.raw });
-        const h = new Headers(r.headers);
-        h.set("content-type", r.headers.get("content-type") || "application/octet-stream");
-        return cors(new Response(await r.arrayBuffer(), { status: r.status, headers: h }));
-      } catch (e: any) {
-        return cors(json({ error: String(e?.message || e) }, 500));
-      }
-    }
+        if (path === "/fx/proxy") {
+            const target = url.searchParams.get("url");
+            if (!target) return cors(json({ error: "Missing url" }, 400));
+            try {
+                const body = await maybeBody(req);
+                const headers = new Headers(req.headers);
+                headers.delete("host"); headers.delete("origin"); headers.delete("referer");
+                const r = await fetch(target, { method: req.method, headers, body: body?.raw });
+                const h = new Headers(r.headers);
+                h.set("content-type", r.headers.get("content-type") || "application/octet-stream");
+                return cors(new Response(await r.arrayBuffer(), { status: r.status, headers: h }));
+            } catch (e: any) {
+                return cors(json({ error: String(e?.message || e) }, 500));
+            }
+        }
 
-    if (path === "/fx/module") {
-      const target = url.searchParams.get("url");
-      if (!target) return cors(json({ error: "Missing url" }, 400));
-      try {
-        const r = await fetch(target);
-        if (!r.ok) return cors(json({ error: `Upstream ${r.status}` }, r.status));
-        const code = await r.text();
-        return cors(new Response(code, { status: 200, headers: new Headers({ "content-type": "application/javascript; charset=utf-8" }) }));
-      } catch (e: any) {
-        return cors(json({ error: String(e?.message || e) }, 500));
-      }
-    }
+        if (path === "/fx/module") {
+            const target = url.searchParams.get("url");
+            if (!target) return cors(json({ error: "Missing url" }, 400));
+            try {
+                const r = await fetch(target);
+                if (!r.ok) return cors(json({ error: `Upstream ${r.status}` }, r.status));
+                const code = await r.text();
+                return cors(new Response(code, { status: 200, headers: new Headers({ "content-type": "application/javascript; charset=utf-8" }) }));
+            } catch (e: any) {
+                return cors(json({ error: String(e?.message || e) }, 500));
+            }
+        }
 
-    return cors(json({
-      fx: "online",
-      endpoints: { health: "/fx/health", proxy: "/fx/proxy?url=<encoded>", module: "/fx/module?url=<encoded>" }
-    }));
-  });
+        return cors(json({
+            fx: "online",
+            endpoints: { health: "/fx/health", proxy: "/fx/proxy?url=<encoded>", module: "/fx/module?url=<encoded>" }
+        }));
+    });
 
-  console.log(`[FX] Deno server listening on http://localhost:${(globalThis as any).Deno.env.get("PORT") || 8787}`);
+    console.log(`[FX] Deno server listening on http://localhost:${(globalThis as any).Deno.env.get("PORT") || 8787}`);
 }
 
 async function maybeBody(req: Request) {
-  const ct = req.headers.get("content-type") || "";
-  if (ct.includes("application/json")) { const j = await req.json().catch(() => undefined); return { raw: JSON.stringify(j ?? {}) }; }
-  if (ct.includes("text/")) { const t = await req.text(); return { raw: t }; }
-  if (ct.includes("form")) {
-    const form = await req.formData();
-    const data = new URLSearchParams(); for (const [k, v] of (form as any).entries()) data.append(k, String(v));
-    return { raw: data.toString() };
-  }
-  try { const b = await req.arrayBuffer(); return { raw: b }; } catch { return undefined; }
+    const ct = req.headers.get("content-type") || "";
+    if (ct.includes("application/json")) { const j = await req.json().catch(() => undefined); return { raw: JSON.stringify(j ?? {}) }; }
+    if (ct.includes("text/")) { const t = await req.text(); return { raw: t }; }
+    if (ct.includes("form")) {
+        const form = await req.formData();
+        const data = new URLSearchParams(); for (const [k, v] of (form as any).entries()) data.append(k, String(v));
+        return { raw: data.toString() };
+    }
+    try { const b = await req.arrayBuffer(); return { raw: b }; } catch { return undefined; }
 }
 function json(obj: any, status = 200) { return new Response(JSON.stringify(obj), { status, headers: new Headers({ "content-type": "application/json; charset=utf-8" }) }); }
 function cors(res: Response) {
-  const h = new Headers(res.headers);
-  h.set("access-control-allow-origin", "*");
-  h.set("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-  h.set("access-control-allow-headers", "Content-Type,Authorization,Accept");
-  return new Response(res.body, { status: res.status, headers: h });
+    const h = new Headers(res.headers);
+    h.set("access-control-allow-origin", "*");
+    h.set("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    h.set("access-control-allow-headers", "Content-Type,Authorization,Accept");
+    return new Response(res.body, { status: res.status, headers: h });
 }
 
 export default fx;

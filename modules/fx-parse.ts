@@ -78,3 +78,160 @@ export function applyPatches(
         }
     }
 }
+
+// Batch patch application with transaction semantics
+export interface BatchPatchResult {
+    succeeded: Patch[];
+    failed: Array<{ patch: Patch; error: string }>;
+    rollbackAvailable: boolean;
+}
+
+export function applyPatchesBatch(
+    patches: Patch[],
+    opts: { 
+        onMissing?: "create" | "skip", 
+        orphanRoot?: string,
+        transaction?: boolean,  // If true, all succeed or all fail
+        validateFirst?: boolean // If true, validate all before applying any
+    } = {}
+): BatchPatchResult {
+    const { 
+        onMissing = "create", 
+        orphanRoot = "snippets.orphans",
+        transaction = false,
+        validateFirst = true
+    } = opts;
+    
+    const backups = new Map<string, any>();
+    const succeeded: Patch[] = [];
+    const failed: Array<{ patch: Patch; error: string }> = [];
+    
+    // Validation phase
+    if (validateFirst) {
+        for (const patch of patches) {
+            const known = findBySnippetId(patch.id);
+            if (!known && onMissing === "skip") {
+                failed.push({ 
+                    patch, 
+                    error: `Snippet ${patch.id} not found and onMissing is 'skip'` 
+                });
+            }
+        }
+        
+        if (transaction && failed.length > 0) {
+            return { succeeded: [], failed, rollbackAvailable: false };
+        }
+    }
+    
+    // Application phase
+    for (const patch of patches) {
+        try {
+            const known = findBySnippetId(patch.id);
+            
+            if (known) {
+                // Backup current value for rollback
+                const currentValue = $$(known.path).val();
+                backups.set(known.path, currentValue);
+                
+                // Check for checksum mismatch
+                const current = String(currentValue ?? "");
+                const curHash = simpleHash(normalizeEol(current));
+                if (patch.checksum && patch.checksum !== curHash) {
+                    if (transaction) {
+                        throw new Error(`Checksum mismatch for ${patch.id}: expected ${patch.checksum}, got ${curHash}`);
+                    }
+                    // In non-transaction mode, we still apply but could log warning
+                }
+                
+                // Apply patch
+                $$(known.path).set(patch.value);
+                succeeded.push(patch);
+                
+            } else if (onMissing === "create") {
+                const safe = patch.id.replace(/[^\w.-]/g, "_");
+                const path = `${orphanRoot}.${safe}`;
+                
+                // Store null as backup to indicate it was created
+                backups.set(path, null);
+                
+                createSnippet(path, patch.value, { id: patch.id, version: patch.version });
+                indexSnippet(path, patch.id);
+                succeeded.push(patch);
+                
+            } else {
+                throw new Error(`Snippet ${patch.id} not found`);
+            }
+            
+        } catch (error) {
+            failed.push({ 
+                patch, 
+                error: error instanceof Error ? error.message : String(error) 
+            });
+            
+            if (transaction) {
+                // Rollback all changes
+                for (const [path, value] of backups) {
+                    if (value === null) {
+                        // Was created, remove it
+                        // Note: We'd need a delete function in FX
+                        $$(path).set(undefined);
+                    } else {
+                        // Restore original value
+                        $$(path).set(value);
+                    }
+                }
+                
+                return { 
+                    succeeded: [], 
+                    failed: [...failed, ...succeeded.map(p => ({ 
+                        patch: p, 
+                        error: "Rolled back due to transaction failure" 
+                    }))],
+                    rollbackAvailable: true
+                };
+            }
+        }
+    }
+    
+    return { succeeded, failed, rollbackAvailable: backups.size > 0 };
+}
+
+// Conflict detection for concurrent edits
+export interface ConflictDetectionResult {
+    hasConflicts: boolean;
+    conflicts: Array<{
+        id: string;
+        localChecksum: string;
+        remoteChecksum: string;
+        currentChecksum: string;
+    }>;
+}
+
+export function detectConflicts(patches: Patch[]): ConflictDetectionResult {
+    const conflicts: ConflictDetectionResult['conflicts'] = [];
+    
+    for (const patch of patches) {
+        if (!patch.checksum) continue;
+        
+        const known = findBySnippetId(patch.id);
+        if (!known) continue;
+        
+        const current = String($$(known.path).val() ?? "");
+        const currentChecksum = simpleHash(normalizeEol(current));
+        
+        // If checksum doesn't match, there's been a concurrent edit
+        if (patch.checksum !== currentChecksum) {
+            conflicts.push({
+                id: patch.id,
+                localChecksum: currentChecksum,
+                remoteChecksum: patch.checksum,
+                currentChecksum: simpleHash(normalizeEol(patch.value))
+            });
+        }
+    }
+    
+    return {
+        hasConflicts: conflicts.length > 0,
+        conflicts
+    };
+}

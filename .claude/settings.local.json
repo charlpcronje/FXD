@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 5 deno run:*)",
+      "Bash(timeout 3 deno run:*)",
+      "Bash(deno run:*)",
+      "Bash(deno eval:*)",
+      "Bash(deno test:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

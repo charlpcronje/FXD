@@ -11,13 +11,15 @@ export function renderView(viewPath: string, opts: RenderOpts = {}) {
     const { lang = "js", sep = "\n\n", eol = "lf", hoistImports = false } = opts;
     const g = $$(viewPath).group();
 
-    // Expect g.list(): { path, node, id?, lang?, file?, order? }[]
-    const items = g.list().map((it: any, idx: number) => {
-        const id = it.id ?? it.path;
-        const l = it.lang ?? $$(it.path).options()?.lang ?? lang;
-        const f = it.file ?? $$(it.path).options()?.file;
-        const ord = it.order ?? $$(it.path).options()?.order ?? idx;
-        const body = it.node?.get?.() ?? $$(it.path).get();
+    // Expect g.list(): array of proxies
+    const items = g.list().map((proxy: any, idx: number) => {
+        const node = proxy.node() as any;
+        const meta = node.__meta || node.options?.() || {};
+        const id = meta.id ?? node.__id;
+        const l = meta.lang ?? lang;
+        const f = meta.file;
+        const ord = meta.order ?? idx;
+        const body = proxy.val();
         return { id, l, f, ord, body: body ?? "" };
     });
 

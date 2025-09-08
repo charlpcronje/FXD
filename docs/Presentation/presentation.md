@@ -1,7 +1,3 @@
-Got it 👍 — let’s go **deep, clear, and technical** so you have a crisp definition of FXDisk you can hand straight to your designers for Figma.
-
----
-
 # 📖 **What is FXDisk?**
 
 FXDisk is a **virtual file system and development platform** built on top of the FX core.
@@ -143,11 +139,3 @@ Here are the **screens** the FXDisk UI needs:
    * Mock Windows Explorer screen showing `.fxd` file icons.
    * Context menu: Mount, Open with Visualizer, Export.
    * Preview panel: metadata summary (snippets, views, language breakdown).
-
----
-
-👉 If you give this doc to your design team, they can mock up a **dark-themed Figma prototype** that looks like a usable desktop app with a structured sidebar, data tables, draggable blocks, and metadata panels.
-
----
-
-Do you want me to **write out the UI spec in bullet-point “component by component” form** (like a dev handoff) so your Figma designer has zero guesswork about spacing, fonts, colors, and element states?
