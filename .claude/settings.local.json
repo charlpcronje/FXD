@@ -9,7 +9,9 @@
       "Bash(FX_SERVE=true deno run --allow-net --allow-read --allow-write --allow-env server/fxd-demo-simple.ts --port 4401)",
       "Bash(FX_SERVE=true deno run --allow-net --allow-read --allow-write --allow-env fx.ts)",
       "Bash(deno compile:*)",
-      "Bash(./fxd.exe help)"
+      "Bash(./fxd.exe help)",
+      "Bash(PUPPETEER_PRODUCT=chrome deno run -A --unstable https://deno.land/x/puppeteer@16.2.0/install.ts)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
