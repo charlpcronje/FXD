@@ -292,9 +292,9 @@ export class FXRealityDebugger {
       'reality': async () => this.debugRealityLayer(target, layer)
     };
 
-    const debugger = layerDebuggers[layer];
-    if (debugger) {
-      const layerInsights = await debugger();
+    const layerDebugger = layerDebuggers[layer];
+    if (layerDebugger) {
+      const layerInsights = await layerDebugger();
       insights.push(...layerInsights);
     }
 
@@ -809,21 +809,21 @@ return impossibleFix.makeBugImpossible();`;
 
 // Global activation
 export function activateRealityDebugger(fx = $$): FXRealityDebugger {
-  const debugger = new FXRealityDebugger(fx);
-  debugger.activateRealityDebugger();
-  return debugger;
+  const realityDebugger = new FXRealityDebugger(fx);
+  realityDebugger.activateRealityDebugger();
+  return realityDebugger;
 }
 
 // Revolutionary debugging functions
 export async function debugUniverseItself(universe: string = 'prime-universe'): Promise<any> {
-  const debugger = $$('debug.reality').val() as FXRealityDebugger;
-  return debugger.debugWithOmniscience(`universe:${universe}`, {
+  const realityDebugger = $$('debug.reality').val() as FXRealityDebugger;
+  return realityDebugger.debugWithOmniscience(`universe:${universe}`, {
     impossibilityTolerance: 2.0,
     transcendenceLevel: 1.0
   });
 }
 
 export async function healRealityWithConsciousness(universeId: string): Promise<any> {
-  const debugger = $$('debug.reality').val() as FXRealityDebugger;
-  return debugger.healRealityWithLove(universeId);
+  const realityDebugger = $$('debug.reality').val() as FXRealityDebugger;
+  return realityDebugger.healRealityWithLove(universeId);
 }
