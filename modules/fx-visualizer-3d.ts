@@ -3,9 +3,9 @@
  * Interactive 3D visualization of FX nodes with version timelines, branches, and history
  */
 
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer';
+import * as THREE from 'https://cdn.skypack.dev/three@0.150.0';
+import { OrbitControls } from 'https://cdn.skypack.dev/three@0.150.0/examples/jsm/controls/OrbitControls';
+import { CSS2DRenderer, CSS2DObject } from 'https://cdn.skypack.dev/three@0.150.0/examples/jsm/renderers/CSS2DRenderer';
 import { VersionedNode, VersionedNodeFactory } from './fx-versioned-nodes.ts';
 import { FXTimeTravelPlugin } from '../plugins/web/fx-time-travel.ts';
 import type { FXCore, FXNodeProxy } from '../fx.ts';

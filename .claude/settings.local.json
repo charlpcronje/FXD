@@ -5,7 +5,11 @@
       "Bash(timeout 3 deno run:*)",
       "Bash(deno run:*)",
       "Bash(deno eval:*)",
-      "Bash(deno test:*)"
+      "Bash(deno test:*)",
+      "Bash(FX_SERVE=true deno run --allow-net --allow-read --allow-write --allow-env server/fxd-demo-simple.ts --port 4401)",
+      "Bash(FX_SERVE=true deno run --allow-net --allow-read --allow-write --allow-env fx.ts)",
+      "Bash(deno compile:*)",
+      "Bash(./fxd.exe help)"
     ],
     "deny": [],
     "ask": []

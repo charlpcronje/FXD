@@ -93,7 +93,6 @@ export interface FXNodeProxy<V extends FXMutableValue = any, T = {}> extends FXB
     node(): FXNode;
     proxy(): this;
     type(): string | null;
-    type(newType: string | null): this;
 
     /** Type-safe instance unwrap: class or name; cross-realm tolerant */
     as<T>(ctorOrName: { new(...a: any[]): T } | string): T | null;
@@ -150,7 +149,7 @@ function invokeWithSuspendReplay<T extends (...a: any[]) => any>(fn: T, thisArg:
     return run();
 }
 // expose once for cross-file throws (fx-orm.ts, f-flow.ts)
-; (globalThis as any).FXSuspend = FXSuspend;
+(globalThis as any).FXSuspend = FXSuspend;
 
 
 
@@ -604,15 +603,7 @@ export class FXCore {
                 }
                 if (key === "node") return () => node;
                 if (key === "proxy") return () => self.createNodeProxy(node);
-                if (key === "type") {
-                    return function(newType?: string | null) {
-                        if (arguments.length >= 1) {
-                            node.__type = newType;
-                            return receiver;
-                        }
-                        return node.__type;
-                    };
-                }
+                if (key === "type") return () => node.__type;
 
                 if (key === "as") {
                     return <T>(ctorOrName: { new(...a: any[]): T } | string): T | null => {
@@ -1653,12 +1644,6 @@ export const $val = (path: string, value?: any, def?: any) => { const r = $$(pat
 export const $set = (path: string, value: any) => $$(path).set(value);
 export const $get = (path: string) => $$(path).get();
 export const $has = (path: string) => $$(path).val() !== undefined;
-export const $type = function(path: string, newType?: string | null) {
-    if (arguments.length >= 2) {
-        return $$(path).type(newType);
-    }
-    return $$(path).type();
-};
 
 // convenience globals
 export const $app = $_$$('app');
@@ -1671,7 +1656,7 @@ export const $session = $_$$('session');
 export const $system = $_$$('system');
 export const $cache = $_$$('cache');
 
-Object.assign(globalThis as any, { fx, $_$$, $$, $root, $val, $set, $get, $has, $type, $app, $config, $plugins, $modules, $atomics, $dom, $session, $system, $cache });
+Object.assign(globalThis as any, { fx, $_$$, $$, $root, $val, $set, $get, $has, $app, $config, $plugins, $modules, $atomics, $dom, $session, $system, $cache });
 
 // Enable @-syntax (module loading + API shortcuts)
 $$ = patchDollarAtSyntax(fx);
