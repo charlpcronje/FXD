@@ -1,0 +1,42 @@
+{
+  "name": "fxd-testing-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive testing suite for FXD (FX Disk) framework",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test-node/**/*.test.js",
+    "test:watch": "node --test --watch test-node/**/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage test-node/**/*.test.js",
+    "test:ui": "node test-node/puppeteer/ui-tests.js",
+    "test:performance": "node test-node/performance/benchmark.js",
+    "test:integration": "node test-node/integration/integration.test.js",
+    "test:sqlite": "node test-node/persistence/sqlite.test.js",
+    "test:unit": "node --test test-node/unit/**/*.test.js",
+    "test:all": "node test-runner.js",
+    "test:suite": "node test-runner.js --suite",
+    "test:deno": "deno test -A test/",
+    "test:reports": "node test-runner.js --reports",
+    "test:ci": "npm run test:all && npm run test:reports",
+    "coverage": "node test-node/coverage/coverage-reporter.js",
+    "lint": "eslint test-node/**/*.js",
+    "format": "prettier --write test-node/**/*.js",
+    "build": "echo 'Build process would go here'",
+    "pretest": "npm run lint",
+    "posttest": "npm run coverage"
+  },
+  "devDependencies": {
+    "puppeteer": "^21.5.0",
+    "sqlite3": "^5.1.6",
+    "prettier": "^3.0.0",
+    "eslint": "^8.50.0",
+    "benchmark": "^2.1.4",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0"
+  },
+  "keywords": ["fxd", "testing", "quantum", "reactive", "framework"],
+  "author": "FXD Testing Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
