@@ -205,22 +205,26 @@ class FXDCLI {
 
     this._registerCommand({
       name: "export",
-      description: "Export project data",
-      usage: "fxd export <output-file> [options]",
+      description: "Export project data in various formats",
+      usage: "fxd export <output-path> [options]",
       options: [
-        { name: "format", alias: "f", description: "Export format (json|sql|archive)", type: "string", default: "json" },
+        { name: "format", alias: "f", description: "Export format (json|files|archive|zip)", type: "string", default: "json" },
         { name: "include-backups", description: "Include backup data", type: "boolean" },
+        { name: "include-metadata", description: "Include metadata", type: "boolean", default: true },
+        { name: "compress", alias: "c", description: "Compress output (archive format)", type: "boolean" },
       ],
       action: this._exportProject.bind(this),
     });
 
     this._registerCommand({
       name: "import",
-      description: "Import project data",
-      usage: "fxd import <input-file> [options]",
+      description: "Import project data from files or directories",
+      usage: "fxd import <input-path> [options]",
       options: [
         { name: "overwrite", description: "Overwrite existing data", type: "boolean" },
         { name: "backup", description: "Create backup before import", type: "boolean", default: true },
+        { name: "type", alias: "t", description: "Import type (auto|json|code|text)", type: "string", default: "auto" },
+        { name: "recursive", alias: "r", description: "Import directories recursively", type: "boolean", default: true },
       ],
       action: this._importProject.bind(this),
     });
@@ -257,6 +261,52 @@ class FXDCLI {
       description: "Show application status",
       usage: "fxd status",
       action: this._showStatus.bind(this),
+    });
+
+    // Server commands
+    this._registerCommand({
+      name: "serve",
+      description: "Start HTTP server for project",
+      usage: "fxd serve [options]",
+      options: [
+        { name: "port", alias: "p", description: "Server port", type: "number", default: 4400 },
+        { name: "host", alias: "h", description: "Server host", type: "string", default: "localhost" },
+        { name: "static", alias: "s", description: "Serve static files from directory", type: "string" },
+        { name: "watch", alias: "w", description: "Watch for file changes", type: "boolean" },
+      ],
+      action: this._serveProject.bind(this),
+    });
+
+    // Snippet management commands
+    this._registerCommand({
+      name: "snippet",
+      description: "Snippet management commands",
+      usage: "fxd snippet <subcommand> [options]",
+      action: this._snippetCommand.bind(this),
+    });
+
+    // View management commands
+    this._registerCommand({
+      name: "view",
+      description: "View management commands",
+      usage: "fxd view <subcommand> [options]",
+      action: this._viewCommand.bind(this),
+    });
+
+    // Mount management commands
+    this._registerCommand({
+      name: "mount",
+      description: "Virtual filesystem mount commands",
+      usage: "fxd mount <subcommand> [options]",
+      action: this._mountCommand.bind(this),
+    });
+
+    // Git integration commands
+    this._registerCommand({
+      name: "git",
+      description: "Git integration commands",
+      usage: "fxd git <subcommand> [options]",
+      action: this._gitCommand.bind(this),
     });
 
     // Utility commands
@@ -529,24 +579,38 @@ fxd start --production
   }
 
   private async _exportProject(args: CLIArgs): Promise<void> {
-    const outputFile = args.positional[0];
-    if (!outputFile) {
-      throw new Error("Output file is required");
+    const outputPath = args.positional[0];
+    if (!outputPath) {
+      throw new Error("Output path is required");
     }
 
     const format = args.options.format || "json";
     const includeBackups = args.options["include-backups"] || false;
+    const includeMetadata = args.options["include-metadata"] !== false;
+    const compress = args.options.compress || false;
 
-    this._info(`Exporting project to ${outputFile} (format: ${format})`);
+    this._info(`Exporting project to ${outputPath} (format: ${format})`);
 
     const app = this._createApp();
     await app.initialize();
 
     try {
-      await app.persistence.exportProject(outputFile, {
-        format: format as any,
-        includeBackups,
-      });
+      switch (format) {
+        case "json":
+          await this._exportJSON(app, outputPath, includeBackups, includeMetadata);
+          break;
+        case "files":
+          await this._exportFiles(app, outputPath);
+          break;
+        case "archive":
+          await this._exportArchive(app, outputPath, compress);
+          break;
+        case "zip":
+          await this._exportZip(app, outputPath);
+          break;
+        default:
+          throw new Error(`Unsupported export format: ${format}`);
+      }
 
       this._success("Export completed successfully!");
     } finally {
@@ -554,30 +618,379 @@ fxd start --production
     }
   }
 
+  private async _exportJSON(app: any, outputPath: string, includeBackups: boolean, includeMetadata: boolean): Promise<void> {
+    const exportData: any = {
+      version: "1.0.0",
+      exported: new Date().toISOString(),
+      snippets: app.fx.proxy("snippets").val() || {},
+      views: app.fx.proxy("views").val() || {},
+      groups: app.fx.proxy("groups").val() || {},
+    };
+
+    if (includeMetadata) {
+      exportData.metadata = {
+        disk: {
+          name: app.fx.proxy("disk.name").val(),
+          created: app.fx.proxy("disk.created").val(),
+          version: app.fx.proxy("disk.version").val(),
+        },
+        statistics: {
+          snippetCount: Object.keys(exportData.snippets).length,
+          viewCount: Object.keys(exportData.views).length,
+          groupCount: Object.keys(exportData.groups).length,
+        }
+      };
+    }
+
+    const content = JSON.stringify(exportData, null, 2);
+    await Deno.writeTextFile(outputPath, content);
+    this._info(`Exported ${Object.keys(exportData.snippets).length} snippets and ${Object.keys(exportData.views).length} views`);
+  }
+
+  private async _exportFiles(app: any, outputDir: string): Promise<void> {
+    // Create output directory
+    await Deno.mkdir(outputDir, { recursive: true });
+
+    // Export snippets as individual files
+    const snippets = app.fx.proxy("snippets").val() || {};
+    const snippetDir = `${outputDir}/snippets`;
+    await Deno.mkdir(snippetDir, { recursive: true });
+
+    for (const [id, snippet] of Object.entries(snippets)) {
+      const s = snippet as any;
+      const ext = this._getFileExtension(s.language || 'text');
+      const filename = `${id.replace(/[^a-zA-Z0-9.-]/g, '_')}.${ext}`;
+      const filepath = `${snippetDir}/${filename}`;
+
+      await Deno.writeTextFile(filepath, s.content || '');
+      this._info(`Exported snippet: ${filename}`);
+    }
+
+    // Export views as individual files
+    const views = app.fx.proxy("views").val() || {};
+    const viewDir = `${outputDir}/views`;
+    await Deno.mkdir(viewDir, { recursive: true });
+
+    for (const [id, view] of Object.entries(views)) {
+      const filename = `${id.replace(/[^a-zA-Z0-9.-]/g, '_')}.html`;
+      const filepath = `${viewDir}/${filename}`;
+
+      const content = typeof view === 'string' ? view : JSON.stringify(view, null, 2);
+      await Deno.writeTextFile(filepath, content);
+      this._info(`Exported view: ${filename}`);
+    }
+
+    // Create index file
+    const indexContent = `# FXD Export
+
+Exported on: ${new Date().toISOString()}
+
+## Snippets (${Object.keys(snippets).length})
+${Object.keys(snippets).map(id => `- ${id}`).join('\n')}
+
+## Views (${Object.keys(views).length})
+${Object.keys(views).map(id => `- ${id}`).join('\n')}
+`;
+
+    await Deno.writeTextFile(`${outputDir}/README.md`, indexContent);
+  }
+
+  private async _exportArchive(app: any, outputPath: string, compress: boolean): Promise<void> {
+    const exportData = {
+      version: "1.0.0",
+      exported: new Date().toISOString(),
+      format: "archive",
+      data: {
+        snippets: app.fx.proxy("snippets").val() || {},
+        views: app.fx.proxy("views").val() || {},
+        groups: app.fx.proxy("groups").val() || {},
+        metadata: {
+          disk: {
+            name: app.fx.proxy("disk.name").val(),
+            created: app.fx.proxy("disk.created").val(),
+            version: app.fx.proxy("disk.version").val(),
+          }
+        }
+      }
+    };
+
+    let content = JSON.stringify(exportData, null, compress ? 0 : 2);
+
+    if (compress) {
+      // Simple compression by removing extra whitespace
+      content = content.replace(/\s+/g, ' ').trim();
+    }
+
+    await Deno.writeTextFile(outputPath, content);
+    this._info(`Archive exported (${compress ? 'compressed' : 'readable'})`);
+  }
+
+  private async _exportZip(app: any, outputPath: string): Promise<void> {
+    this._info("ZIP export is not yet implemented");
+    this._info("Use 'files' format for directory export or 'archive' for single file");
+  }
+
+  private _getFileExtension(language: string): string {
+    const extMap: Record<string, string> = {
+      'javascript': 'js',
+      'typescript': 'ts',
+      'python': 'py',
+      'rust': 'rs',
+      'go': 'go',
+      'java': 'java',
+      'c': 'c',
+      'cpp': 'cpp',
+      'css': 'css',
+      'html': 'html',
+      'markdown': 'md',
+      'json': 'json',
+      'yaml': 'yaml',
+      'text': 'txt'
+    };
+
+    return extMap[language] || 'txt';
+  }
+
   private async _importProject(args: CLIArgs): Promise<void> {
-    const inputFile = args.positional[0];
-    if (!inputFile) {
-      throw new Error("Input file is required");
+    const inputPath = args.positional[0];
+    if (!inputPath) {
+      throw new Error("Input path is required");
     }
 
     const overwrite = args.options.overwrite || false;
     const backup = args.options.backup ?? true;
+    const type = args.options.type || "auto";
+    const recursive = args.options.recursive !== false;
 
-    this._info(`Importing project from ${inputFile}`);
+    this._info(`Importing from ${inputPath}`);
 
     const app = this._createApp();
     await app.initialize();
 
     try {
-      await app.persistence.importProject(inputFile, {
-        overwrite,
-        createBackup: backup,
-      });
+      // Check if it's a file or directory
+      const stat = await Deno.stat(inputPath);
 
+      if (stat.isFile) {
+        // Import single file or archive
+        await this._importFile(app, inputPath, type, overwrite);
+      } else if (stat.isDirectory) {
+        // Import directory
+        await this._importDirectory(app, inputPath, recursive, overwrite);
+      }
+
+      await app.persistence.saveProject({ createBackup: backup });
       this._success("Import completed successfully!");
+    } catch (error) {
+      throw new Error(`Import failed: ${error.message}`);
     } finally {
       await app.shutdown();
     }
+  }
+
+  private async _importFile(app: any, filePath: string, type: string, overwrite: boolean): Promise<void> {
+    const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
+    const fileExt = fileName.split('.').pop()?.toLowerCase() || 'txt';
+
+    if (type === "auto") {
+      // Auto-detect type
+      if (fileExt === "json") {
+        type = "json";
+      } else if (["js", "ts", "jsx", "tsx", "py", "rs", "go"].includes(fileExt)) {
+        type = "code";
+      } else {
+        type = "text";
+      }
+    }
+
+    const content = await Deno.readTextFile(filePath);
+
+    switch (type) {
+      case "json":
+        try {
+          const data = JSON.parse(content);
+          if (data.snippets) {
+            for (const [id, snippet] of Object.entries(data.snippets)) {
+              if (!overwrite && app.fx.proxy(`snippets.${id}`).val()) {
+                this._info(`Skipping existing snippet: ${id}`);
+                continue;
+              }
+              app.fx.proxy(`snippets.${id}`).val(snippet);
+              this._info(`Imported snippet: ${id}`);
+            }
+          }
+          if (data.views) {
+            for (const [id, view] of Object.entries(data.views)) {
+              if (!overwrite && app.fx.proxy(`views.${id}`).val()) {
+                this._info(`Skipping existing view: ${id}`);
+                continue;
+              }
+              app.fx.proxy(`views.${id}`).val(view);
+              this._info(`Imported view: ${id}`);
+            }
+          }
+        } catch (error) {
+          throw new Error(`Invalid JSON format: ${error.message}`);
+        }
+        break;
+
+      case "code":
+        const snippets = this._parseCodeIntoSnippets(content, this._detectLanguage(fileExt), fileName);
+        for (const [id, snippet] of Object.entries(snippets)) {
+          if (!overwrite && app.fx.proxy(`snippets.${id}`).val()) {
+            this._info(`Skipping existing snippet: ${id}`);
+            continue;
+          }
+          app.fx.proxy(`snippets.${id}`).val(snippet);
+          this._info(`Imported snippet: ${id}`);
+        }
+        break;
+
+      default:
+        const snippetId = fileName.replace(/\.[^/.]+$/, '');
+        if (!overwrite && app.fx.proxy(`snippets.${snippetId}`).val()) {
+          this._info(`Skipping existing snippet: ${snippetId}`);
+        } else {
+          app.fx.proxy(`snippets.${snippetId}`).val({
+            id: snippetId,
+            name: fileName,
+            content,
+            language: this._detectLanguage(fileExt),
+            created: Date.now(),
+            source: filePath,
+            type: 'imported'
+          });
+          this._info(`Imported file: ${fileName}`);
+        }
+    }
+  }
+
+  private async _importDirectory(app: any, dirPath: string, recursive: boolean, overwrite: boolean): Promise<void> {
+    for await (const entry of Deno.readDir(dirPath)) {
+      const fullPath = `${dirPath}/${entry.name}`;
+
+      if (entry.isFile && this._shouldImportFile(entry.name)) {
+        this._info(`Importing file: ${entry.name}`);
+        await this._importFile(app, fullPath, "auto", overwrite);
+      } else if (entry.isDirectory && recursive && !entry.name.startsWith('.')) {
+        this._info(`Entering directory: ${entry.name}`);
+        await this._importDirectory(app, fullPath, recursive, overwrite);
+      }
+    }
+  }
+
+  private _parseCodeIntoSnippets(content: string, language: string, fileName: string): Record<string, any> {
+    const snippets: Record<string, any> = {};
+    const baseId = fileName.replace(/\.[^/.]+$/, '');
+
+    // Simple parsing - look for functions, classes, etc.
+    const lines = content.split('\n');
+    let currentSnippet: any = null;
+    let lineNumber = 0;
+
+    for (const line of lines) {
+      lineNumber++;
+      const trimmed = line.trim();
+
+      // Detect function definitions
+      if (this._isFunctionDeclaration(trimmed, language)) {
+        // Save previous snippet
+        if (currentSnippet) {
+          snippets[currentSnippet.id] = currentSnippet;
+        }
+
+        // Start new snippet
+        const functionName = this._extractFunctionName(trimmed, language);
+        currentSnippet = {
+          id: `${baseId}.${functionName}`,
+          name: functionName,
+          content: line + '\n',
+          language,
+          created: Date.now(),
+          source: fileName,
+          type: 'function',
+          startLine: lineNumber,
+          endLine: lineNumber
+        };
+      } else if (currentSnippet) {
+        // Add to current snippet
+        currentSnippet.content += line + '\n';
+        currentSnippet.endLine = lineNumber;
+      }
+    }
+
+    // Save final snippet
+    if (currentSnippet) {
+      snippets[currentSnippet.id] = currentSnippet;
+    }
+
+    // If no functions found, create one snippet for the whole file
+    if (Object.keys(snippets).length === 0) {
+      snippets[baseId] = {
+        id: baseId,
+        name: fileName,
+        content,
+        language,
+        created: Date.now(),
+        source: fileName,
+        type: 'file'
+      };
+    }
+
+    return snippets;
+  }
+
+  private _detectLanguage(extension: string): string {
+    const langMap: Record<string, string> = {
+      'js': 'javascript',
+      'ts': 'typescript',
+      'jsx': 'javascript',
+      'tsx': 'typescript',
+      'py': 'python',
+      'rs': 'rust',
+      'go': 'go',
+      'java': 'java',
+      'c': 'c',
+      'cpp': 'cpp',
+      'h': 'c',
+      'hpp': 'cpp',
+      'css': 'css',
+      'html': 'html',
+      'md': 'markdown',
+      'json': 'json',
+      'yaml': 'yaml',
+      'yml': 'yaml'
+    };
+
+    return langMap[extension] || 'text';
+  }
+
+  private _shouldImportFile(filename: string): boolean {
+    const skipExtensions = ['.log', '.tmp', '.cache', '.git'];
+    const skipFiles = ['node_modules', '.DS_Store', 'thumbs.db'];
+
+    return !skipExtensions.some(ext => filename.endsWith(ext)) &&
+           !skipFiles.some(file => filename.toLowerCase().includes(file.toLowerCase()));
+  }
+
+  private _isFunctionDeclaration(line: string, language: string): boolean {
+    const patterns: Record<string, RegExp[]> = {
+      javascript: [/^(function\s+\w+|const\s+\w+\s*=\s*\(|async\s+function)/],
+      typescript: [/^(function\s+\w+|const\s+\w+\s*=\s*\(|async\s+function|export\s+function)/],
+      python: [/^def\s+\w+/, /^async\s+def\s+\w+/],
+      rust: [/^(pub\s+)?fn\s+\w+/, /^(pub\s+)?async\s+fn\s+\w+/],
+      go: [/^func\s+\w+/],
+      java: [/^(public|private|protected)?\s*(static\s+)?\w+\s+\w+\s*\(/]
+    };
+
+    const langPatterns = patterns[language] || [];
+    return langPatterns.some(pattern => pattern.test(line));
+  }
+
+  private _extractFunctionName(line: string, language: string): string {
+    // Simple extraction - can be enhanced
+    const matches = line.match(/(?:function|def|fn)\s+(\w+)|const\s+(\w+)\s*=/);
+    return matches?.[1] || matches?.[2] || 'unknown';
   }
 
   private async _pluginCommand(args: CLIArgs): Promise<void> {
@@ -798,6 +1211,362 @@ fxd start --production
     } finally {
       await app.shutdown();
     }
+  }
+
+  private async _serveProject(args: CLIArgs): Promise<void> {
+    const port = args.options.port || 4400;
+    const host = args.options.host || "localhost";
+    const staticDir = args.options.static;
+    const watch = args.options.watch || false;
+
+    this._info(`Starting HTTP server on ${host}:${port}`);
+    if (staticDir) {
+      this._info(`Serving static files from: ${staticDir}`);
+    }
+    if (watch) {
+      this._info("File watching enabled");
+    }
+
+    const app = this._createApp({
+      ...args.options,
+      host,
+      port,
+    });
+
+    // Set up signal handlers for graceful shutdown
+    const shutdown = async () => {
+      this._info("Shutting down server...");
+      await app.shutdown();
+      Deno.exit(0);
+    };
+
+    Deno.addSignalListener("SIGINT", shutdown);
+    Deno.addSignalListener("SIGTERM", shutdown);
+
+    try {
+      await app.initialize();
+      await app.start();
+
+      this._success(`Server running at http://${host}:${port}`);
+
+      // Keep the process running
+      await new Promise(() => {}); // Never resolves
+
+    } catch (error) {
+      throw new Error(`Failed to start server: ${error.message}`);
+    }
+  }
+
+  private async _snippetCommand(args: CLIArgs): Promise<void> {
+    const subcommand = args.positional[0];
+
+    if (!subcommand) {
+      this._info("Snippet management commands:");
+      this._info("  create <name>      - Create a new snippet");
+      this._info("  edit <name>        - Edit existing snippet");
+      this._info("  delete <name>      - Delete snippet");
+      this._info("  list               - List all snippets");
+      this._info("  run <name>         - Execute snippet");
+      this._info("  export <name>      - Export snippet to file");
+      this._info("  import <file>      - Import snippet from file");
+      this._info("  copy <from> <to>   - Copy snippet");
+      this._info("  tag <name> <tags>  - Tag snippet");
+      this._info("  search <query>     - Search snippets");
+      return;
+    }
+
+    const app = this._createApp();
+    await app.initialize();
+
+    try {
+      switch (subcommand) {
+        case "list":
+          const snippets = app.fx.proxy("snippets").val() || {};
+          const snippetIds = Object.keys(snippets);
+
+          if (snippetIds.length === 0) {
+            this._info("No snippets found");
+          } else {
+            this._info(`Found ${snippetIds.length} snippets:`);
+            for (const id of snippetIds) {
+              const snippet = snippets[id];
+              const created = new Date(snippet.created || 0).toLocaleDateString();
+              this._info(`  📝 ${id} (${snippet.language || 'unknown'}) - ${created}`);
+            }
+          }
+          break;
+
+        case "create":
+          const name = args.positional[1];
+          if (!name) throw new Error("Snippet name is required");
+
+          const language = args.options.language || "javascript";
+          const content = args.options.content || `// ${name}\nconsole.log("Hello from ${name}");`;
+
+          app.fx.proxy(`snippets.${name}`).val({
+            id: name,
+            name,
+            content,
+            language,
+            created: Date.now(),
+            type: 'custom'
+          });
+
+          await app.persistence.saveProject({ incremental: true });
+          this._success(`Snippet '${name}' created`);
+          break;
+
+        case "run":
+          const runName = args.positional[1];
+          if (!runName) throw new Error("Snippet name is required");
+
+          const snippet = app.fx.proxy(`snippets.${runName}`).val();
+          if (!snippet) throw new Error(`Snippet '${runName}' not found`);
+
+          this._info(`Executing snippet: ${runName}`);
+
+          if (snippet.language === 'javascript' || snippet.language === 'typescript') {
+            try {
+              const func = new Function('console', '$$', snippet.content);
+              const result = func(console, app.fx.proxy);
+              this._success("Snippet executed successfully");
+              if (result !== undefined) {
+                this._info(`Result: ${JSON.stringify(result)}`);
+              }
+            } catch (error) {
+              this._error(`Execution failed: ${error.message}`);
+            }
+          } else {
+            this._info("Code preview:");
+            const lines = snippet.content.split('\n').slice(0, 10);
+            lines.forEach((line: string, i: number) => {
+              this._info(`  ${i + 1}: ${line}`);
+            });
+          }
+          break;
+
+        case "delete":
+          const deleteName = args.positional[1];
+          if (!deleteName) throw new Error("Snippet name is required");
+
+          const existing = app.fx.proxy(`snippets.${deleteName}`).val();
+          if (!existing) throw new Error(`Snippet '${deleteName}' not found`);
+
+          app.fx.proxy(`snippets.${deleteName}`).val(undefined);
+          await app.persistence.saveProject({ incremental: true });
+          this._success(`Snippet '${deleteName}' deleted`);
+          break;
+
+        case "export":
+          const exportName = args.positional[1];
+          const outputFile = args.positional[2] || `${exportName}.js`;
+          if (!exportName) throw new Error("Snippet name is required");
+
+          const exportSnippet = app.fx.proxy(`snippets.${exportName}`).val();
+          if (!exportSnippet) throw new Error(`Snippet '${exportName}' not found`);
+
+          await Deno.writeTextFile(outputFile, exportSnippet.content);
+          this._success(`Snippet exported to: ${outputFile}`);
+          break;
+
+        case "search":
+          const query = args.positional[1];
+          if (!query) throw new Error("Search query is required");
+
+          const allSnippets = app.fx.proxy("snippets").val() || {};
+          const results = Object.entries(allSnippets).filter(([id, snippet]: [string, any]) => {
+            return id.toLowerCase().includes(query.toLowerCase()) ||
+                   snippet.content?.toLowerCase().includes(query.toLowerCase()) ||
+                   snippet.name?.toLowerCase().includes(query.toLowerCase());
+          });
+
+          if (results.length === 0) {
+            this._info(`No snippets found matching: ${query}`);
+          } else {
+            this._info(`Found ${results.length} matching snippets:`);
+            for (const [id, snippet] of results) {
+              this._info(`  📝 ${id} - ${snippet.name || 'Untitled'}`);
+            }
+          }
+          break;
+
+        default:
+          this._error(`Unknown snippet subcommand: ${subcommand}`);
+      }
+    } finally {
+      await app.shutdown();
+    }
+  }
+
+  private async _viewCommand(args: CLIArgs): Promise<void> {
+    const subcommand = args.positional[0];
+
+    if (!subcommand) {
+      this._info("View management commands:");
+      this._info("  create <name>      - Create a new view");
+      this._info("  list               - List all views");
+      this._info("  show <name>        - Display view content");
+      this._info("  delete <name>      - Delete view");
+      this._info("  render <name>      - Render view to HTML");
+      this._info("  update <name>      - Update view content");
+      return;
+    }
+
+    const app = this._createApp();
+    await app.initialize();
+
+    try {
+      switch (subcommand) {
+        case "list":
+          const views = app.fx.proxy("views").val() || {};
+          const viewIds = Object.keys(views);
+
+          if (viewIds.length === 0) {
+            this._info("No views found");
+          } else {
+            this._info(`Found ${viewIds.length} views:`);
+            for (const id of viewIds) {
+              const content = views[id];
+              const lines = (typeof content === 'string' ? content : JSON.stringify(content)).split('\n').length;
+              this._info(`  👁️  ${id} (${lines} lines)`);
+            }
+          }
+          break;
+
+        case "show":
+          const showName = args.positional[1];
+          if (!showName) throw new Error("View name is required");
+
+          const view = app.fx.proxy(`views.${showName}`).val();
+          if (!view) throw new Error(`View '${showName}' not found`);
+
+          this._info(`View: ${showName}`);
+          this._info("================");
+          console.log(typeof view === 'string' ? view : JSON.stringify(view, null, 2));
+          break;
+
+        case "create":
+          const createName = args.positional[1];
+          if (!createName) throw new Error("View name is required");
+
+          const template = args.options.template || "html";
+          let content = "";
+
+          switch (template) {
+            case "html":
+              content = `<!DOCTYPE html>
+<html>
+<head>
+    <title>${createName}</title>
+</head>
+<body>
+    <h1>${createName}</h1>
+    <p>View content goes here...</p>
+</body>
+</html>`;
+              break;
+            case "markdown":
+              content = `# ${createName}
+
+View content in markdown format.
+`;
+              break;
+            default:
+              content = `View: ${createName}\nContent goes here...`;
+          }
+
+          app.fx.proxy(`views.${createName}`).val(content);
+          await app.persistence.saveProject({ incremental: true });
+          this._success(`View '${createName}' created`);
+          break;
+
+        case "delete":
+          const deleteName = args.positional[1];
+          if (!deleteName) throw new Error("View name is required");
+
+          const existing = app.fx.proxy(`views.${deleteName}`).val();
+          if (!existing) throw new Error(`View '${deleteName}' not found`);
+
+          app.fx.proxy(`views.${deleteName}`).val(undefined);
+          await app.persistence.saveProject({ incremental: true });
+          this._success(`View '${deleteName}' deleted`);
+          break;
+
+        default:
+          this._error(`Unknown view subcommand: ${subcommand}`);
+      }
+    } finally {
+      await app.shutdown();
+    }
+  }
+
+  private async _mountCommand(args: CLIArgs): Promise<void> {
+    const subcommand = args.positional[0];
+
+    if (!subcommand) {
+      this._info("Virtual filesystem commands:");
+      this._info("  create <path>      - Create new mount point");
+      this._info("  destroy <id>       - Destroy mount point");
+      this._info("  list               - List all mounts");
+      this._info("  status [id]        - Show mount status");
+      this._info("  sync               - Sync all mounts");
+      this._info("  info               - Show system information");
+      this._info("");
+      this._info("Options for create:");
+      this._info("  --type=<platform>  - Platform type (auto|windows|macos|linux)");
+      this._info("  --volume-name=<name> - Custom volume name");
+      this._info("  --allow-other      - Allow other users to access");
+      this._info("  --debug            - Enable debug mode");
+      return;
+    }
+
+    const app = this._createApp();
+    await app.initialize();
+
+    try {
+      // Import VFS manager
+      const { VFSManager, VFSCLICommands } = await import("../modules/fx-vfs-manager.ts");
+
+      // Create and initialize VFS manager
+      const vfsManager = new VFSManager(app.fx);
+      await vfsManager.initialize();
+
+      // Create CLI commands handler
+      const cliCommands = new VFSCLICommands(vfsManager);
+
+      // Handle the command
+      await cliCommands.handleMountCommand(subcommand, args);
+
+    } catch (error) {
+      this._error(`VFS command failed: ${error.message}`);
+      if (error.message.includes("not available")) {
+        this._info("💡 VFS requires platform-specific drivers:");
+        this._info("   Windows: Install WinFsp from https://winfsp.dev/");
+        this._info("   macOS: Install macFUSE from https://osxfuse.github.io/");
+        this._info("   Linux: Install FUSE (sudo apt-get install fuse)");
+      }
+    } finally {
+      await app.shutdown();
+    }
+  }
+
+  private async _gitCommand(args: CLIArgs): Promise<void> {
+    const subcommand = args.positional[0];
+
+    if (!subcommand) {
+      this._info("Git integration commands:");
+      this._info("  scan [path]        - Scan for Git repositories");
+      this._info("  sync               - Sync with Git repositories");
+      this._info("  status             - Show Git status");
+      this._info("  import <repo>      - Import Git repository");
+      this._info("  conflicts          - Show merge conflicts");
+      this._info("  resolve            - Resolve conflicts");
+      return;
+    }
+
+    this._info("Git integration is in development");
+    this._info("This feature will provide bidirectional Git synchronization");
+    this._info("Planned features: repository scanning, conflict resolution, auto-sync");
   }
 
   private async _cleanProject(args: CLIArgs): Promise<void> {
