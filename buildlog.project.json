@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "project_name": "fxd",
+  "description": "A Node.js web application or API project",
+  "type": "node.js-application",
+  "languages": [
+    "typescript",
+    "javascript"
+  ],
+  "modules": [],
+  "entrypoints": [
+    "src/index.js",
+    "src/index.ts",
+    "index.js"
+  ],
+  "repo": {
+    "provider": "github",
+    "remote": "https://github.com/charlpcronje/FXD.git",
+    "default_branch": "main",
+    "issue_tracker_url": "https://github.com/charlpcronje/FXD/issues"
+  },
+  "ci": {
+    "provider": "github-actions",
+    "workflows": [],
+    "coverage_report_paths": [
+      "coverage/lcov.info",
+      "coverage/coverage-summary.json"
+    ]
+  },
+  "doc": {
+    "design_docs": [
+      "docs/DESIGN.md"
+    ],
+    "readme": "README.md",
+    "changelog": "CHANGELOG.md",
+    "license": "LICENSE",
+    "tasks": "docs/TASKS.md"
+  },
+  "test": {
+    "commands": [
+      "npm test",
+      "npm run test:coverage"
+    ],
+    "bench_commands": [
+      "npm run test:performance"
+    ],
+    "integration_tags": [
+      "integration",
+      "e2e"
+    ]
+  },
+  "build": {
+    "commands": [
+      "npm run build"
+    ]
+  },
+  "metrics": {
+    "loc_include": [
+      "src/**/*.js",
+      "src/**/*.ts",
+      "src/**/*.jsx",
+      "src/**/*.tsx"
+    ],
+    "loc_exclude": [
+      "node_modules/**",
+      "build/**",
+      "dist/**",
+      "**/*.test.js",
+      "**/*.test.ts",
+      "**/*.md",
+      "**/*.json",
+      "**/*.yaml",
+      "**/*.yml",
+      ".git/**"
+    ],
+    "binary_paths": [
+      "bin/*",
+      "build/*",
+      "dist/*",
+      "target/*"
+    ],
+    "watch_dirs": [
+      "./"
+    ],
+    "watch_exclude": [
+      "node_modules/**",
+      "build/**",
+      "dist/**",
+      "**/*.test.js",
+      "**/*.test.ts",
+      "**/*.md",
+      "**/*.json",
+      "**/*.yaml",
+      "**/*.yml",
+      ".git/**",
+      ".buildlog/**"
+    ]
+  },
+  "privacy": {
+    "collect_pii": false,
+    "upload_enabled": false
+  }
+}
