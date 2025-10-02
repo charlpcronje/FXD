@@ -1,5 +1,6 @@
 {
   "tasks": {
+    "build": "deno bundle fxn.ts fx.js",
     "dev": "deno run -A server/fxdisk-dev.ts",
     "materialize": "deno run -A server/fxdisk-dev.ts"
   },

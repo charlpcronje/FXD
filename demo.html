@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FXD Demo - Interactive Visualizer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 { font-size: 36px; margin-bottom: 10px; }
+    .header p { opacity: 0.9; font-size: 18px; }
+    .content {
+      padding: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    .section {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .section-header {
+      background: #f5f5f5;
+      padding: 15px 20px;
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 600;
+      font-size: 18px;
+      color: #333;
+    }
+    .section-body { padding: 20px; }
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 20px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: 'Consolas', 'Monaco', monospace;
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #5568d3; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+      grid-column: 1 / -1;
+    }
+    .stat-card {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 FXD Interactive Demo</h1>
+      <p>Real-time FX node visualization with CSS selectors and reactive groups</p>
+    </div>
+    <div class="content">
+      <div style="grid-column: 1 / -1;">
+        <div class="controls">
+          <button onclick="initDemo()">🎬 Initialize Demo</button>
+          <button onclick="addUser()">➕ Add User</button>
+          <button onclick="refresh()">🔄 Refresh</button>
+          <button onclick="showTree()">🌳 Show Tree</button>
+        </div>
+        <div class="stats" id="stats"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">📦 Project</div>
+        <div class="section-body">
+          <pre id="project">Not initialized - click "Initialize Demo"</pre>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">👥 All Users</div>
+        <div class="section-body">
+          <pre id="users">Not initialized</pre>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">✅ Active Users</div>
+        <div class="section-body">
+          <pre id="activeUsers">Not initialized</pre>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">👨‍💻 Developers</div>
+        <div class="section-body">
+          <pre id="developers">Not initialized</pre>
+        </div>
+      </div>
+
+      <div class="section" style="grid-column: 1 / -1;">
+        <div class="section-header">🌳 FX Node Tree</div>
+        <div class="section-body">
+          <pre id="tree">Tree will appear here when you click "Show Tree"</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load FX -->
+  <script src="./fx.js"></script>
+
+  <script>
+    // Wait for FX to be ready
+    console.log('FX loaded:', typeof $$ !== 'undefined');
+
+    function initDemo() {
+      console.log('Initializing FXD demo...');
+
+      // Create project
+      $$('project').val({
+        name: 'FXD Interactive Demo',
+        version: '1.0.0',
+        created: new Date().toISOString()
+      });
+
+      // Create users
+      $$('users.alice').val({ id: 1, name: 'Alice', role: 'admin', active: true });
+      $$('users.bob').val({ id: 2, name: 'Bob', role: 'developer', active: true });
+      $$('users.charlie').val({ id: 3, name: 'Charlie', role: 'designer', active: false });
+      $$('users.david').val({ id: 4, name: 'David', role: 'developer', active: true });
+
+      // Create config
+      $$('config.database').val({ host: 'localhost', port: 5432 });
+      $$('config.server').val({ port: 3000, debug: true });
+
+      console.log('Demo initialized!');
+      refresh();
+    }
+
+    function refresh() {
+      // Get project
+      const project = $$('project').val();
+      document.getElementById('project').textContent = JSON.stringify(project, null, 2);
+
+      // Get all users
+      const users = $$('users').val();
+      document.getElementById('users').textContent = JSON.stringify(users, null, 2);
+
+      // CSS Selector: active users
+      const activeUsers = $$('users').select('[active=true]');
+      const activeList = activeUsers.list().map(u => u.val());
+      document.getElementById('activeUsers').textContent = JSON.stringify(activeList, null, 2);
+
+      // CSS Selector: developers
+      const developers = $$('users').select('[role=developer]');
+      const devList = developers.list().map(u => u.val());
+      document.getElementById('developers').textContent = JSON.stringify(devList, null, 2);
+
+      // Update stats
+      const totalUsers = Object.keys(users || {}).length;
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${totalUsers}</div>
+          <div class="stat-label">Total Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${activeList.length}</div>
+          <div class="stat-label">Active Users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${devList.length}</div>
+          <div class="stat-label">Developers</div>
+        </div>
+      `;
+    }
+
+    let userCounter = 5;
+    function addUser() {
+      const roles = ['developer', 'designer', 'admin', 'manager'];
+      const names = ['Emma', 'Liam', 'Olivia', 'Noah', 'Ava', 'Ethan', 'Sophia', 'Mason'];
+
+      const name = names[Math.floor(Math.random() * names.length)];
+      const role = roles[Math.floor(Math.random() * roles.length)];
+      const active = Math.random() > 0.3;
+
+      $$(`users.user${userCounter}`).val({
+        id: userCounter,
+        name: name,
+        role: role,
+        active: active
+      });
+
+      userCounter++;
+      refresh();
+    }
+
+    function showTree() {
+      const tree = [];
+
+      function buildTree(path, indent = '') {
+        const node = $$(path).node();
+        const val = $$(path).val();
+        const name = path.split('.').pop() || 'root';
+
+        tree.push(`${indent}📦 ${name}`);
+
+        if (val && typeof val === 'object' && !Array.isArray(val)) {
+          Object.entries(val).forEach(([key, value]) => {
+            if (typeof value !== 'object') {
+              tree.push(`${indent}  └─ ${key}: ${value}`);
+            }
+          });
+        }
+
+        if (node && node.__nodes) {
+          Object.keys(node.__nodes).forEach(key => {
+            buildTree(path ? `${path}.${key}` : key, indent + '  ');
+          });
+        }
+      }
+
+      buildTree('project');
+      buildTree('users');
+      buildTree('config');
+
+      document.getElementById('tree').textContent = tree.join('\n');
+    }
+
+    // Auto-initialize on load
+    setTimeout(initDemo, 100);
+  </script>
+</body>
+</html>
