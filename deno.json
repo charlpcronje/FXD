@@ -1,11 +1,15 @@
 {
   "tasks": {
-    "build": "deno bundle fxn.ts fx.js",
-    "dev": "deno run -A server/fxdisk-dev.ts",
+    "build": "deno run -A npm:esbuild fxn.ts --bundle --format=iife --outfile=fx.js --platform=browser --global-name=FX",
+    "dev": "deno run --allow-net --allow-read --allow-env --allow-write fxn.ts",
+    "start": "deno task build && deno task dev",
+    "serve": "PORT=4500 deno run --allow-all fxn.ts",
+    "demo": "deno task build && deno task serve",
     "materialize": "deno run -A server/fxdisk-dev.ts"
   },
   "compilerOptions": {
-    "lib": ["deno.window", "deno.ns", "deno.unstable"],
+    "lib": ["deno.window", "dom", "dom.iterable", "deno.ns", "deno.unstable"],
     "strict": true
-  }
+  },
+  "nodeModulesDir": "auto"
 }
