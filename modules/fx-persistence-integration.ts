@@ -434,4 +434,4 @@ export * from "./fx-migration-system.ts";
 export * from "./fx-backup-restore.ts";
 export * from "./fx-file-association.ts";
 
-export { FXDPersistenceSystem };
+// FXDPersistenceSystem is already exported as a class declaration above
