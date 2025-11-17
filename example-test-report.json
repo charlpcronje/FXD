@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-11-17T16:40:31.877Z",
+  "passed": [
+    "Persistence Demo"
+  ],
+  "failed": [
+    "Hello World",
+    "Import/Export",
+    "MCP Client",
+    "Snippet Management",
+    "Repository JS"
+  ],
+  "warnings": [
+    "Hello World: No error handling",
+    "Persistence Demo: No error handling",
+    "Import/Export: No error handling",
+    "Snippet Management: No error handling",
+    "Repository JS: No error handling"
+  ],
+  "passRate": 17,
+  "summary": {
+    "total": 6,
+    "passed": 1,
+    "failed": 5,
+    "warnings": 5
+  }
+}
