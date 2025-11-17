@@ -1,14 +1,39 @@
+// ═══════════════════════════════════════════════════════════════
+// @agent: agent-modules-core
+// @timestamp: 2025-10-02T10:15:00Z
+// @task: TRACK-B-MODULES.md#B1.2
+// @status: in_progress
+// @notes: Fixed imports to resolve $$, $_$$, fx from fxn.ts core
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// Core FX Imports
+// ═══════════════════════════════════════════════════════════════
+
+import { $$, $_$$, fx } from '../fxn.ts';
+import type { FXNode, FXNodeProxy } from '../fxn.ts';
+
+// ═══════════════════════════════════════════════════════════════
+// Module Imports
+// ═══════════════════════════════════════════════════════════════
+
 import { wrapSnippet, chooseEol } from "./fx-snippets.ts";
+
+// ═══════════════════════════════════════════════════════════════
+// Module Types
+// ═══════════════════════════════════════════════════════════════
 
 type RenderOpts = {
     lang?: string;
     sep?: string;
+    separator?: string; // Alias for sep
     eol?: "lf" | "crlf";
     hoistImports?: boolean; // JS/TS guardrailed hoist
 };
 
 export function renderView(viewPath: string, opts: RenderOpts = {}) {
-    const { lang = "js", sep = "\n\n", eol = "lf", hoistImports = false } = opts;
+    const { lang = "js", eol = "lf", hoistImports = false } = opts;
+    const sep = opts.sep || opts.separator || "\n\n"; // Support both sep and separator
     const g = $$(viewPath).group();
 
     // Expect g.list(): array of proxies

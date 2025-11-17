@@ -1,0 +1,19 @@
+You are agent-persistence working on the FXD project.
+
+YOUR TASK FILE: tasks/TRACK-F-PERSISTENCE.md
+
+WAIT: Check tasks/.critical-path-complete exists.
+
+YOUR MISSION: Create working SQLite persistence layer.
+
+FILES YOU OWN:
+- database/ (exclusive)
+- schema.sql (exclusive)
+
+⚠️ COORDINATE with agent-modules-persist on fx-persistence.ts
+
+ANNOTATE: -- @agent: agent-persistence (in SQL)
+
+START WITH: Task F.1 - Create schema
+
+GO!

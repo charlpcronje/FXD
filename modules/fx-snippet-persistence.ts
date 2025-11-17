@@ -4,7 +4,13 @@
  * Handles storage and retrieval of code snippets with metadata
  */
 
-import { FXCore, FXNode } from "../fx.ts";
+// @agent: agent-modules-persist
+// @timestamp: 2025-10-02T07:00:00Z
+// @task: TRACK-B-MODULES.md#B2.2
+// @status: in_progress
+
+import { $$, $_$$, fx, FXCore } from '../fxn.ts';
+import type { FXNode } from '../fxn.ts';
 import {
   SQLiteDatabase,
   SQLiteStatement,
@@ -431,17 +437,17 @@ export class SnippetPersistence {
       // Process FX snippet nodes
       for (const node of snippetNodes) {
         const nodeProxy = this.fx.createNodeProxy(node);
-        const meta = (node as any).__meta || {};
+        const meta: any = (node as any).__meta || {};
         const snippetId = meta.id;
 
         if (!snippetId) continue;
 
-        const body = nodeProxy.val() || '';
+        const body: string = String(nodeProxy.val() || '');
         const existingSnippet = dbSnippetMap.get(snippetId);
 
         if (existingSnippet) {
           // Check if update needed
-          const currentChecksum = PersistenceUtils.checksumSnippet(body, meta);
+          const currentChecksum = PersistenceUtils.checksumSnippet(body, meta as any);
           if (currentChecksum !== existingSnippet.checksum) {
             this.statements.updateSnippet.run(
               body,
@@ -459,7 +465,7 @@ export class SnippetPersistence {
         } else {
           // Create new snippet
           const id = PersistenceUtils.generateId();
-          const checksum = PersistenceUtils.checksumSnippet(body, meta);
+          const checksum = PersistenceUtils.checksumSnippet(body, meta as any);
 
           this.statements.insertSnippet.run(
             id,
@@ -605,5 +611,3 @@ export class SnippetPersistence {
 export function createSnippetPersistence(db: SQLiteDatabase, fx: FXCore): SnippetPersistence {
   return new SnippetPersistence(db, fx);
 }
-
-export { SnippetPersistence };

@@ -1,10 +1,20 @@
-// examples/repo-js/demo.ts
-//
-// Demonstrates: render -> parse -> applyPatches -> render again.
+/**
+ * Example: Repo JS Demo
+ * @agent: agent-examples
+ * @timestamp: 2025-10-02
+ * @task: TRACK-D-EXAMPLES.md#D.1
+ *
+ * Demonstrates: render -> parse -> applyPatches -> render again.
+ */
 
+import { $$, $_$$, fx } from "../../fxn.ts";
 import { renderView } from "../../modules/fx-view.ts";
 import { toPatches, applyPatches } from "../../modules/fx-parse.ts";
 import { seedRepoSnippets } from "./seed.ts";
+
+// Setup
+globalThis.$$ = $$;
+globalThis.$_$$ = $_$$;
 
 // 1) Seed some snippets + view
 seedRepoSnippets();

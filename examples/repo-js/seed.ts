@@ -1,9 +1,19 @@
-// examples/repo-js/seed.ts
-//
-// Seed a couple of snippets + a view node for Phase-1 demo.
-// Run once at startup to populate the FX graph.
+/**
+ * Example: Repo JS Seed
+ * @agent: agent-examples
+ * @timestamp: 2025-10-02
+ * @task: TRACK-D-EXAMPLES.md#D.1
+ *
+ * Seed a couple of snippets + a view node for Phase-1 demo.
+ * Run once at startup to populate the FX graph.
+ */
 
+import { $$, $_$$, fx } from "../../fxn.ts";
 import { createSnippet } from "../../modules/fx-snippets.ts";
+
+// Setup
+globalThis.$$ = $$;
+globalThis.$_$$ = $_$$;
 
 export function seedRepoSnippets() {
     // header import snippet

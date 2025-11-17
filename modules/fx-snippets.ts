@@ -1,4 +1,25 @@
+// ═══════════════════════════════════════════════════════════════
+// @agent: CodeWeaver
+// @timestamp: 2025-10-02T06:50:00Z
+// @task: CRITICAL-PATH.md#0.4
+// @status: complete
+// @notes: Fixed imports to resolve $$ from fxn.ts core
+//         This is the PROOF OF CONCEPT for the import pattern
+//         All other modules should follow this same pattern
+// ═══════════════════════════════════════════════════════════════
+
 // Phase-1 utilities: stable snippet creation, comment styles, wrappers, checksum, ID index.
+
+// ═══════════════════════════════════════════════════════════════
+// Core FX Imports
+// ═══════════════════════════════════════════════════════════════
+
+import { $$, $_$$, fx } from '../fxn.ts';
+import type { FXNode, FXNodeProxy } from '../fxn.ts';
+
+// ═══════════════════════════════════════════════════════════════
+// Module Types
+// ═══════════════════════════════════════════════════════════════
 
 type Lang = "js" | "ts" | "jsx" | "tsx" | "py" | "sh" | "ini" | "php" | "go" | "cxx" | "text" | string;
 
@@ -22,6 +43,11 @@ export const COMMENT: Record<string, { open?: string; close?: string; line?: str
 
 // ——— ID index (id -> path) ———
 const snippetIdx = new Map<string, string>();
+
+// Clear snippet index (for testing)
+export function clearSnippetIndex() {
+    snippetIdx.clear();
+}
 
 export function indexSnippet(path: string, id?: string) {
     const node = $$(path).node() as any;

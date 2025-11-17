@@ -20,8 +20,16 @@ var FX = (() => {
   // fxn.ts
   var fxn_exports = {};
   __export(fxn_exports, {
+    $$: () => $$,
+    $_$$: () => $_$$,
+    $get: () => $get,
+    $has: () => $has,
+    $root: () => $root,
+    $set: () => $set,
+    $val: () => $val,
     FXCore: () => FXCore,
-    default: () => fxn_default
+    default: () => fxn_default,
+    fx: () => fx
   });
   var import_meta = {};
   var HAS_DENO = typeof globalThis.Deno !== "undefined";

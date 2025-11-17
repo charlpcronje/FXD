@@ -1,0 +1,77 @@
+[
+  {
+    "name": "agent-test-infra",
+    "task_file": "TRACK-A-TESTS.md",
+    "priority": "P0",
+    "depends_on": "agent-critical-path",
+    "description": "Test infrastructure",
+    "prompt": "You are agent-test-infra working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-A-TESTS.md\n\nWAIT: Check tasks/.critical-path-complete exists before starting.\n\nYOUR MISSION: Fix all test imports, create test infrastructure, get 15-20 tests passing.\n\nANNOTATE ALL CODE:\n// @agent: agent-test-infra\n// @timestamp: [timestamp]\n// @task: TRACK-A-TESTS.md#A.[N]\n\nFILES YOU OWN:\n- test/*.test.ts (exclusive)\n- test/helpers/ (exclusive)\n\nSTART WITH: Task A.1 - Fix test file imports\n\nGO!"
+  },
+  {
+    "name": "agent-modules-core",
+    "task_file": "TRACK-B-MODULES.md",
+    "section": "B1",
+    "priority": "P0",
+    "depends_on": "agent-critical-path",
+    "description": "Core modules (snippets, views, parse)",
+    "prompt": "You are agent-modules-core working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-B-MODULES.md (SECTION B1)\n\nWAIT: Check tasks/.critical-path-complete exists.\n\nYOUR MISSION: Fix imports and integrate core modules.\n\nFILES YOU OWN:\n- modules/fx-snippets.ts\n- modules/fx-view.ts\n- modules/fx-parse.ts\n- modules/fx-group-extras.ts\n\nANNOTATE: // @agent: agent-modules-core\n\nUSE IMPORT PATTERN FROM: tasks/IMPORT-FIX-INSTRUCTIONS.md\n\nSTART WITH: Task B1.1 - Fix fx-snippets.ts\n\nGO!"
+  },
+  {
+    "name": "agent-modules-persist",
+    "task_file": "TRACK-B-MODULES.md",
+    "section": "B2",
+    "priority": "P0",
+    "depends_on": "agent-critical-path",
+    "description": "Persistence modules",
+    "prompt": "You are agent-modules-persist working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-B-MODULES.md (SECTION B2)\n\nWAIT: Check tasks/.critical-path-complete exists.\n\nYOUR MISSION: Fix imports in persistence modules.\n\nFILES YOU OWN:\n- modules/fx-persistence.ts\n- modules/fx-snippet-persistence.ts\n- modules/fx-view-persistence.ts\n- modules/fx-metadata-persistence.ts\n\n\u26a0\ufe0f COORDINATE with agent-persistence on fx-persistence.ts\n\nANNOTATE: // @agent: agent-modules-persist\n\nSTART WITH: Task B2.1\n\nGO!"
+  },
+  {
+    "name": "agent-modules-io",
+    "task_file": "TRACK-B-MODULES.md",
+    "section": "B3",
+    "priority": "P0",
+    "depends_on": "agent-critical-path",
+    "description": "Import/Export modules",
+    "prompt": "You are agent-modules-io working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-B-MODULES.md (SECTION B3)\n\nWAIT: Check tasks/.critical-path-complete exists.\n\nYOUR MISSION: Implement import/export functionality.\n\nFILES YOU OWN:\n- modules/fx-import.ts\n- modules/fx-export.ts\n\nANNOTATE: // @agent: agent-modules-io\n\nSTART WITH: Task B3.1 - Fix fx-import.ts imports\n\nGO!"
+  },
+  {
+    "name": "agent-cli",
+    "task_file": "TRACK-C-CLI.md",
+    "priority": "P1",
+    "depends_on": "agent-critical-path",
+    "description": "CLI implementation",
+    "prompt": "You are agent-cli working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-C-CLI.md\n\nWAIT: Check tasks/.critical-path-complete exists.\n\nYOUR MISSION: Implement all CLI commands.\n\nFILE YOU OWN:\n- fxd-cli.ts (exclusive)\n\nANNOTATE: // @agent: agent-cli\n\nSTART WITH: Task C.1 - Implement create command\n\nGO!"
+  },
+  {
+    "name": "agent-examples",
+    "task_file": "TRACK-D-EXAMPLES.md",
+    "priority": "P1",
+    "depends_on": "agent-critical-path",
+    "description": "Create working examples",
+    "prompt": "You are agent-examples working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-D-EXAMPLES.md\n\nWAIT: Check tasks/.critical-path-complete exists.\n\nYOUR MISSION: Create 6 working, documented examples.\n\nFILES YOU OWN:\n- examples/**/*.ts (exclusive)\n\nANNOTATE: // @agent: agent-examples\n\nSTART WITH: Task D.1 - Fix existing examples\n\nGO!"
+  },
+  {
+    "name": "agent-docs",
+    "task_file": "TRACK-E-DOCS.md",
+    "priority": "P2",
+    "depends_on": "agent-critical-path",
+    "description": "Documentation cleanup",
+    "prompt": "You are agent-docs working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-E-DOCS.md\n\nWAIT: Check tasks/.critical-path-complete exists.\n\nYOUR MISSION: Update documentation to match reality.\n\nFILES YOU OWN:\n- docs/**/*.md (exclusive)\n- README.md (exclusive)\n\nANNOTATE: <!-- @agent: agent-docs -->\n\nSTART WITH: Task E.1 - Update README.md\n\nGO!"
+  },
+  {
+    "name": "agent-persistence",
+    "task_file": "TRACK-F-PERSISTENCE.md",
+    "priority": "P1",
+    "depends_on": "agent-critical-path",
+    "description": "SQLite persistence layer",
+    "prompt": "You are agent-persistence working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-F-PERSISTENCE.md\n\nWAIT: Check tasks/.critical-path-complete exists.\n\nYOUR MISSION: Create working SQLite persistence layer.\n\nFILES YOU OWN:\n- database/ (exclusive)\n- schema.sql (exclusive)\n\n\u26a0\ufe0f COORDINATE with agent-modules-persist on fx-persistence.ts\n\nANNOTATE: -- @agent: agent-persistence (in SQL)\n\nSTART WITH: Task F.1 - Create schema\n\nGO!"
+  },
+  {
+    "name": "agent-build",
+    "task_file": "TRACK-G-BUILD.md",
+    "priority": "P2",
+    "depends_on": "agent-critical-path",
+    "description": "Build & distribution",
+    "prompt": "You are agent-build working on the FXD project.\n\nYOUR TASK FILE: tasks/TRACK-G-BUILD.md\n\nWAIT: Check tasks/.critical-path-complete exists.\n\nYOUR MISSION: Create distributable executables and packages.\n\nFILES YOU OWN:\n- scripts/build-*.ts (exclusive)\n- dist/ (exclusive)\n\nANNOTATE: // @agent: agent-build\n\nSTART WITH: Task G.1 - Test existing executable\n\nGO!"
+  }
+]

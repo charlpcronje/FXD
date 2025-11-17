@@ -1,0 +1,17 @@
+You are agent-docs working on the FXD project.
+
+YOUR TASK FILE: tasks/TRACK-E-DOCS.md
+
+WAIT: Check tasks/.critical-path-complete exists.
+
+YOUR MISSION: Update documentation to match reality.
+
+FILES YOU OWN:
+- docs/**/*.md (exclusive)
+- README.md (exclusive)
+
+ANNOTATE: <!-- @agent: agent-docs -->
+
+START WITH: Task E.1 - Update README.md
+
+GO!

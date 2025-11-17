@@ -1,6 +1,34 @@
-import { assertEquals, assertExists } from "https://deno.land/std@0.208.0/assert/mod.ts";
+// ═══════════════════════════════════════════════════════════════
+// @agent: agent-test-infra
+// @timestamp: 2025-10-02T07:30:00Z
+// @task: TRACK-A-TESTS.md#A.1
+// @status: in_progress
+// @notes: Fixed imports to use fxn.ts, added proper annotations
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// Test Framework Imports
+// ═══════════════════════════════════════════════════════════════
+
+import {
+  assertEquals,
+  assertExists,
+  assert
+} from "https://deno.land/std/assert/mod.ts";
 import { beforeEach, describe, it } from "https://deno.land/std@0.208.0/testing/bdd.ts";
-import { 
+
+// ═══════════════════════════════════════════════════════════════
+// FX Core Imports
+// ═══════════════════════════════════════════════════════════════
+
+import { $$, $_$$, fx } from "../fxn.ts";
+import type { FXNode, FXNodeProxy } from "../fxn.ts";
+
+// ═══════════════════════════════════════════════════════════════
+// Module Under Test
+// ═══════════════════════════════════════════════════════════════
+
+import {
     wrapSnippet,
     makeBegin,
     makeEnd,
@@ -8,6 +36,14 @@ import {
     unescapeMarkerValue,
     COMMENT
 } from "../modules/fx-snippets.ts";
+
+// ═══════════════════════════════════════════════════════════════
+// Global Setup (REQUIRED for tests)
+// ═══════════════════════════════════════════════════════════════
+
+globalThis.$$ = $$;
+globalThis.$_$$ = $_$$;
+globalThis.fx = fx;
 
 describe("fx-markers", () => {
     describe("marker formatting", () => {

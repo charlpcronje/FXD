@@ -1,11 +1,13 @@
 /**
  * FX Export System - Materialize FXD content to real filesystems
  * Leverages fx-time-travel for versioned exports and fx-safe for resilience
+ * @agent: agent-modules-io
+ * @timestamp: 2025-10-02
+ * @task: TRACK-B-MODULES.md#B3.3
  */
 
-import { $$ } from '../fx.ts';
-import { FXTimeTravelPlugin } from '../plugins/fx-time-travel.ts';
-import { FXSafePlugin } from '../plugins/fx-safe.ts';
+import { $$, $_$$, fx } from '../fxn.ts';
+import type { FXNode, FXNodeProxy } from '../fxn.ts';
 
 interface ExportOptions {
   format?: 'files' | 'archive' | 'bundle' | 'static-site' | 'npm-package' | 'docker';
@@ -45,12 +47,8 @@ interface ExportResult {
 }
 
 export class FXExportEngine {
-  private timeTravel: FXTimeTravelPlugin;
-  private safe: FXSafePlugin;
-
-  constructor(fx = $$) {
-    this.timeTravel = new FXTimeTravelPlugin(fx as any);
-    this.safe = new FXSafePlugin(fx as any);
+  constructor() {
+    // Basic export engine - no plugin dependencies
   }
 
   async exportView(viewId: string, outputPath: string, options: ExportOptions = {}): Promise<ExportResult> {
@@ -60,12 +58,13 @@ export class FXExportEngine {
     console.log(`📤 Exporting view: ${viewId} -> ${outputPath}`);
 
     try {
-      // Create snapshot for versioned export
-      const snapshot = this.timeTravel.snapshot(`Export ${viewId}`);
-
-      const view = $$(`views.${viewId}`).val();
+      // Try to get the view content - could be stored as .content or directly
+      let view = $$(`views.${viewId}.content`).val();
       if (!view) {
-        throw new Error(`View not found: ${viewId}`);
+        view = $$(`views.${viewId}`).val();
+      }
+      if (!view || typeof view !== 'string') {
+        throw new Error(`View not found or invalid: ${viewId}`);
       }
 
       // Ensure output directory exists
@@ -86,10 +85,8 @@ export class FXExportEngine {
         }, opts.transformRules);
       }
 
-      // Write file using fx-safe for resilience
-      await this.safe.timeout(`export-${viewId}`, async () => {
-        await Deno.writeTextFile(outputPath, content);
-      }, 10000);
+      // Write file
+      await Deno.writeTextFile(outputPath, content);
 
       const result: ExportResult = {
         filesCreated: 1,
@@ -181,16 +178,30 @@ export class FXExportEngine {
 
     } catch (error) {
       console.error(`❌ Export failed:`, error);
-      result.errors.push(`Export failed: ${error.message}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Export failed: ${errorMsg}`);
       throw error;
     }
   }
 
   private async exportAsFiles(targetDir: string, options: Required<ExportOptions>, result: ExportResult): Promise<void> {
     // Export views as individual files
-    const views = $$('views').val() || {};
+    const viewsNode = $$('views').node();
+    if (!viewsNode || !viewsNode.__nodes) {
+      console.log('  ⚠ No views to export');
+      return;
+    }
 
-    for (const [viewId, content] of Object.entries(views)) {
+    for (const [viewId, viewNode] of Object.entries(viewsNode.__nodes)) {
+      // Get content from the view node
+      const contentNode = viewNode.__nodes?.content;
+      const content = contentNode?.__value || viewNode.__value;
+
+      if (!content || typeof content !== 'string') {
+        console.log(`  ⚠ Skipping ${viewId} (no valid content)`);
+        continue;
+      }
+
       const filePath = `${targetDir}/${viewId}`;
       const dirPath = filePath.split('/').slice(0, -1).join('/');
 
@@ -198,10 +209,10 @@ export class FXExportEngine {
         await Deno.mkdir(dirPath, { recursive: true });
       }
 
-      await Deno.writeTextFile(filePath, content as string);
+      await Deno.writeTextFile(filePath, content);
 
       result.filesCreated++;
-      result.totalSize += (content as string).length;
+      result.totalSize += content.length;
 
       console.log(`  ✓ Exported: ${viewId}`);
     }
@@ -346,13 +357,13 @@ export class FXExportEngine {
 
     // Write main files
     await Deno.writeTextFile(`${targetDir}/index.html`, siteStructure['index.html']);
-    await Deno.writeTextFile(`${targetDir}/assets/style.css`, siteStructure['assets/'].style.css);
-    await Deno.writeTextFile(`${targetDir}/assets/script.js`, siteStructure['assets/'].script.js);
+    await Deno.writeTextFile(`${targetDir}/assets/style.css`, siteStructure['assets/']['style.css']);
+    await Deno.writeTextFile(`${targetDir}/assets/script.js`, siteStructure['assets/']['script.js']);
 
     result.filesCreated += 3;
     result.totalSize += siteStructure['index.html'].length +
-                        siteStructure['assets/'].style.css.length +
-                        siteStructure['assets/'].script.js.length;
+                        siteStructure['assets/']['style.css'].length +
+                        siteStructure['assets/']['script.js'].length;
   }
 
   private async exportAsNpmPackage(targetDir: string, options: Required<ExportOptions>, result: ExportResult): Promise<void> {

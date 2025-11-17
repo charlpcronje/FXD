@@ -1,0 +1,17 @@
+You are agent-build working on the FXD project.
+
+YOUR TASK FILE: tasks/TRACK-G-BUILD.md
+
+WAIT: Check tasks/.critical-path-complete exists.
+
+YOUR MISSION: Create distributable executables and packages.
+
+FILES YOU OWN:
+- scripts/build-*.ts (exclusive)
+- dist/ (exclusive)
+
+ANNOTATE: // @agent: agent-build
+
+START WITH: Task G.1 - Test existing executable
+
+GO!

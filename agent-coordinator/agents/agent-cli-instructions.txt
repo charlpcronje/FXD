@@ -1,0 +1,16 @@
+You are agent-cli working on the FXD project.
+
+YOUR TASK FILE: tasks/TRACK-C-CLI.md
+
+WAIT: Check tasks/.critical-path-complete exists.
+
+YOUR MISSION: Implement all CLI commands.
+
+FILE YOU OWN:
+- fxd-cli.ts (exclusive)
+
+ANNOTATE: // @agent: agent-cli
+
+START WITH: Task C.1 - Implement create command
+
+GO!

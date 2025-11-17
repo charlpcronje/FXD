@@ -4,6 +4,12 @@
  * Handles project-level settings and configuration persistence
  */
 
+// @agent: agent-modules-persist
+// @timestamp: 2025-10-02T07:00:00Z
+// @task: TRACK-B-MODULES.md#B2.4
+// @status: in_progress
+
+import { $$, $_$$, fx } from '../fxn.ts';
 import {
   SQLiteDatabase,
   SQLiteStatement,
@@ -587,5 +593,3 @@ export class MetadataPersistence {
 export function createMetadataPersistence(db: SQLiteDatabase): MetadataPersistence {
   return new MetadataPersistence(db);
 }
-
-export { MetadataPersistence, ProjectConfiguration };

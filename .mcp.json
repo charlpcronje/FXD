@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "termite-fxd": {
+      "type": "stdio",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "C:\\Users\\charl\\AppData\\Roaming\\npm\\termite",
+        "start",
+        "--dir",
+        "C:\\dev\\fxd",
+        "--silent"
+      ],
+      "env": {}
+    }
+  }
+}

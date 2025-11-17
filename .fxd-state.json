@@ -1,0 +1,17 @@
+{
+  "disk": {
+    "name": "test-disk-2",
+    "created": 1759404411743,
+    "version": "1.0.0",
+    "path": ".//test-disk-2.fxd"
+  },
+  "snippets": {},
+  "views": {},
+  "groups": {},
+  "markers": {},
+  "metadata": {
+    "creator": "charl",
+    "description": "FXD disk: test-disk-2",
+    "tags": []
+  }
+}

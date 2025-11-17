@@ -4,7 +4,14 @@
  * Implements comprehensive .fxd file format with nodes, snippets, views, and metadata
  */
 
-import { FXNode, FXCore } from "../fx.ts";
+// @agent: agent-modules-persist
+// @timestamp: 2025-10-02T07:00:00Z
+// @task: TRACK-B-MODULES.md#B2.1
+// @status: in_progress
+
+import { $$, $_$$, fx } from '../fxn.ts';
+import type { FXNode } from '../fxn.ts';
+import { indexSnippet } from './fx-snippets.ts';
 
 // SQLite database schema version - increment when schema changes
 export const SCHEMA_VERSION = 1;
@@ -391,6 +398,321 @@ export class SchemaManager {
       console.error('[FX-Persistence] Integrity check failed:', error);
       return false;
     }
+  }
+}
+
+/**
+ * Main FXD Persistence class - handles save/load of FX graphs to .fxd files
+ */
+export class FXPersistence {
+  private db: SQLiteDatabase;
+  private schema: SchemaManager;
+
+  constructor(db: SQLiteDatabase) {
+    this.db = db;
+    this.schema = new SchemaManager(db);
+  }
+
+  /**
+   * Initialize a new .fxd database file
+   */
+  initialize(): void {
+    this.schema.initializeSchema();
+  }
+
+  /**
+   * Save the entire FX graph to the database
+   */
+  save(): void {
+    console.log('[FX-Persistence] Starting save...');
+
+    this.db.transaction(() => {
+      // Clear existing data (fresh save each time)
+      this.db.exec('DELETE FROM view_components');
+      this.db.exec('DELETE FROM views');
+      this.db.exec('DELETE FROM snippets');
+      this.db.exec('DELETE FROM nodes');
+
+      // Traverse and save all nodes
+      const nodeCount = this.saveNode($_$$.node(), null, null);
+
+      console.log(`[FX-Persistence] Saved ${nodeCount} nodes`);
+    });
+  }
+
+  /**
+   * Recursively save a node and its children
+   */
+  private saveNode(node: FXNode, parentId: string | null, keyName: string | null): number {
+    let count = 0;
+
+    // Save this node
+    const nodeId = node.__id;
+    const nodeType = node.__type || 'raw';
+
+    // Serialize value - extract .raw if it's an FX value object
+    let valueToSave = node.__value;
+    if (valueToSave && typeof valueToSave === 'object' && 'raw' in valueToSave) {
+      valueToSave = valueToSave.raw; // Extract the actual value
+    }
+    const valueJson = valueToSave !== undefined
+      ? PersistenceUtils.safeStringify(valueToSave)
+      : null;
+
+    // Serialize metadata
+    const metaJson = (node as any).__meta
+      ? PersistenceUtils.safeStringify((node as any).__meta)
+      : null;
+
+    // Serialize prototypes (stored as array of strings)
+    const prototypesJson = node.__proto
+      ? PersistenceUtils.safeStringify([node.__proto])
+      : null;
+
+    // Calculate checksum
+    const checksum = PersistenceUtils.checksumNode(node);
+
+    // Insert node
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO nodes (
+        id, parent_id, key_name, node_type, value_json,
+        prototypes_json, meta_json, checksum
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(nodeId, parentId, keyName, nodeType, valueJson, prototypesJson, metaJson, checksum);
+    stmt.finalize();
+    count++;
+
+    // If this is a snippet, save to snippets table
+    if (nodeType === 'snippet' && (node as any).__meta?.id) {
+      this.saveSnippet(node, nodeId);
+    }
+
+    // Recursively save children
+    if (node.__nodes) {
+      for (const key in node.__nodes) {
+        const child = node.__nodes[key];
+        count += this.saveNode(child, nodeId, key);
+      }
+    }
+
+    return count;
+  }
+
+  /**
+   * Save snippet-specific data
+   */
+  private saveSnippet(node: FXNode, nodeId: string): void {
+    const meta = (node as any).__meta || {};
+    const body = String(node.__value || '');
+
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO snippets (
+        id, node_id, snippet_id, body, lang, file_path,
+        order_index, version, checksum
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const snippetDbId = PersistenceUtils.generateId();
+    const checksum = PersistenceUtils.checksumSnippet(body, meta);
+
+    stmt.run(
+      snippetDbId,
+      nodeId,
+      meta.id || nodeId,
+      body,
+      meta.lang || 'js',
+      meta.file || null,
+      meta.order || 0,
+      meta.version || 1,
+      checksum
+    );
+    stmt.finalize();
+  }
+
+  /**
+   * Load entire FX graph from database
+   */
+  load(): void {
+    console.log('[FX-Persistence] Starting load...');
+
+    // Clear current graph (except system roots)
+    this.clearGraph();
+
+    // Load all nodes
+    const stmt = this.db.prepare(`
+      SELECT * FROM nodes ORDER BY parent_id NULLS FIRST
+    `);
+
+    const rows = stmt.all();
+    stmt.finalize();
+
+    console.log(`[FX-Persistence] Loading ${rows.length} nodes...`);
+
+    // Build a map of nodes by ID for parent lookup
+    const nodeMap = new Map<string, any>();
+    const pathMap = new Map<string, string>(); // Track paths by node ID
+
+    // First pass: create all nodes
+    for (const row of rows) {
+      nodeMap.set(row.id, row);
+    }
+
+    // Second pass: reconstruct hierarchy starting from roots (parent_id is null)
+    for (const row of rows) {
+      if (row.parent_id === null) {
+        this.loadNode(row, null, null, nodeMap, pathMap);
+      }
+    }
+
+    // Load snippets and update metadata using the pathMap
+    this.loadSnippets(pathMap);
+
+    console.log('[FX-Persistence] Load complete');
+  }
+
+  /**
+   * Recursively load a node and its children
+   */
+  private loadNode(
+    row: any,
+    parentNode: FXNode | null,
+    keyName: string | null,
+    nodeMap: Map<string, any>,
+    pathMap: Map<string, string>
+  ): void {
+    // Determine the path by building from parent path + key_name
+    let path: string;
+
+    if (row.parent_id === null) {
+      // Root node of the entire tree
+      path = row.id;
+    } else {
+      // Has a parent
+      const parentPath = pathMap.get(row.parent_id);
+
+      if (!parentPath) {
+        // Parent not loaded yet, shouldn't happen with ORDER BY
+        console.warn(`[FX-Persistence] Parent ${row.parent_id} not found for ${row.key_name}`);
+        path = row.key_name || row.id;
+      } else if (parentPath === $_$$.node().__id) {
+        // Parent is the system root, use just key_name
+        path = row.key_name || row.id;
+      } else {
+        // Normal nested node
+        path = `${parentPath}.${row.key_name || row.id}`;
+      }
+    }
+
+    // Track this node's path
+    pathMap.set(row.id, path);
+
+    // Get or create the node
+    const node = $$(path).node();
+
+    // Restore type
+    if (row.node_type && row.node_type !== 'raw') {
+      node.__type = row.node_type;
+    }
+
+    // Restore value
+    if (row.value_json) {
+      const value = PersistenceUtils.safeParse(row.value_json);
+      // Use .set() for objects/arrays, .val() for primitives
+      if (value !== null && typeof value === 'object') {
+        $$(path).set(value);
+      } else {
+        $$(path).val(value);
+      }
+    }
+
+    // Restore metadata
+    if (row.meta_json) {
+      const meta = PersistenceUtils.safeParse(row.meta_json);
+      (node as any).__meta = meta;
+    }
+
+    // Restore prototypes
+    if (row.prototypes_json) {
+      const protos = PersistenceUtils.safeParse(row.prototypes_json);
+      if (Array.isArray(protos) && protos[0]) {
+        node.__proto = protos[0];
+      }
+    }
+
+    // Find and load children
+    for (const childRow of nodeMap.values()) {
+      if (childRow.parent_id === row.id) {
+        this.loadNode(childRow, node, childRow.key_name, nodeMap, pathMap);
+      }
+    }
+  }
+
+  /**
+   * Load all snippets and rebuild the snippet index
+   */
+  private loadSnippets(pathMap: Map<string, string>): void {
+    const stmt = this.db.prepare('SELECT * FROM snippets');
+    const snippets = stmt.all();
+    stmt.finalize();
+
+    for (const snippet of snippets) {
+      // Get the path from our pathMap using the node_id
+      const path = pathMap.get(snippet.node_id);
+
+      if (path) {
+        // Index the snippet with its proper path
+        indexSnippet(path, snippet.snippet_id);
+      } else {
+        console.warn(`[FX-Persistence] Could not find path for snippet ${snippet.snippet_id}`);
+      }
+    }
+
+    console.log(`[FX-Persistence] Indexed ${snippets.length} snippets`);
+  }
+
+  /**
+   * Clear the FX graph (except system roots like __fx)
+   */
+  private clearGraph(): void {
+    const root = $_$$.node();
+    if (root.__nodes) {
+      const keysToDelete = Object.keys(root.__nodes).filter(k => !k.startsWith('__'));
+      for (const key of keysToDelete) {
+        delete root.__nodes[key];
+      }
+    }
+  }
+
+  /**
+   * Close the database connection
+   */
+  close(): void {
+    this.db.close();
+  }
+
+  /**
+   * Get database statistics
+   */
+  getStats(): { nodes: number; snippets: number; views: number } {
+    const nodesStmt = this.db.prepare('SELECT COUNT(*) as count FROM nodes');
+    const nodes = nodesStmt.get();
+    nodesStmt.finalize();
+
+    const snippetsStmt = this.db.prepare('SELECT COUNT(*) as count FROM snippets');
+    const snippets = snippetsStmt.get();
+    snippetsStmt.finalize();
+
+    const viewsStmt = this.db.prepare('SELECT COUNT(*) as count FROM views');
+    const views = viewsStmt.get();
+    viewsStmt.finalize();
+
+    return {
+      nodes: nodes?.count || 0,
+      snippets: snippets?.count || 0,
+      views: views?.count || 0
+    };
   }
 }
 

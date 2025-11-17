@@ -1,11 +1,13 @@
 /**
  * FX Import System - Convert existing codebases to FXD
  * Leverages fx-flow for cross-realm processing and fx-safe for resilience
+ * @agent: agent-modules-io
+ * @timestamp: 2025-10-02
+ * @task: TRACK-B-MODULES.md#B3.1
  */
 
-import { $$ } from '../fx.ts';
-import { FXSafePlugin } from '../plugins/fx-safe.ts';
-import { FXFlowPlugin } from '../plugins/web/fx-flow.ts';
+import { $$, $_$$, fx } from '../fxn.ts';
+import type { FXNode, FXNodeProxy } from '../fxn.ts';
 
 interface ImportOptions {
   recursive?: boolean;
@@ -51,8 +53,6 @@ interface SnippetInfo {
 }
 
 export class FXImportEngine {
-  private safe: FXSafePlugin;
-  private flow: FXFlowPlugin;
   private supportedExtensions = new Set([
     '.js', '.ts', '.jsx', '.tsx', '.mjs', '.cjs',
     '.py', '.pyx', '.pyi',
@@ -63,9 +63,8 @@ export class FXImportEngine {
     '.sql', '.graphql', '.gql'
   ]);
 
-  constructor(fx = $$) {
-    this.safe = new FXSafePlugin(fx as any);
-    this.flow = new FXFlowPlugin(fx as any);
+  constructor() {
+    // Basic import engine - no plugin dependencies
   }
 
   async importDirectory(dirPath: string, targetView: string, options: ImportOptions = {}): Promise<{
@@ -80,13 +79,6 @@ export class FXImportEngine {
     console.log(`📥 Starting import from: ${dirPath}`);
     console.log(`🎯 Target view: ${targetView}`);
     console.log(`⚙️ Options:`, opts);
-
-    // Use fx-flow for robust parallel processing
-    const importFlow = this.flow.createFlow(`import-${Date.now()}`, {
-      description: `Import directory: ${dirPath}`,
-      timeout: 30000,
-      retries: { maxAttempts: 3, backoffMs: 1000 }
-    });
 
     const stats: ImportStats = {
       startTime: Date.now(),
@@ -108,11 +100,11 @@ export class FXImportEngine {
 
       console.log(`📊 Found ${files.length} files (${this.formatBytes(stats.totalSize)})`);
 
-      // Process files in chunks using fx-flow
+      // Process files in chunks
       const chunks = this.chunkArray(files, opts.chunkSize);
 
       for (const chunk of chunks) {
-        const chunkResults = await this.processFileChunk(chunk, targetView, opts, importFlow);
+        const chunkResults = await this.processFileChunk(chunk, targetView, opts);
         this.mergeStats(stats, chunkResults);
       }
 
@@ -140,7 +132,8 @@ export class FXImportEngine {
 
     } catch (error) {
       console.error(`❌ Import failed:`, error);
-      stats.errors.push(`Import failed: ${error.message}`);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      stats.errors.push(`Import failed: ${errorMsg}`);
       throw error;
     }
   }
@@ -202,7 +195,8 @@ export class FXImportEngine {
                 content
               });
             } catch (error) {
-              console.warn(`⚠️ Skipped ${fullPath}: ${error.message}`);
+              const errorMsg = error instanceof Error ? error.message : String(error);
+              console.warn(`⚠️ Skipped ${fullPath}: ${errorMsg}`);
             }
           }
         }
@@ -746,8 +740,7 @@ export class FXImportEngine {
   private async processFileChunk(
     files: FileInfo[],
     targetView: string,
-    options: Required<ImportOptions>,
-    flow: any
+    options: Required<ImportOptions>
   ): Promise<Partial<ImportStats>> {
     const chunkStats: Partial<ImportStats> = {
       filesProcessed: 0,
@@ -778,7 +771,8 @@ export class FXImportEngine {
 
       } catch (error) {
         console.error(`❌ Failed to process ${file.path}:`, error);
-        chunkStats.errors?.push(`${file.path}: ${error.message}`);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        chunkStats.errors?.push(`${file.path}: ${errorMsg}`);
       }
     }
 
@@ -800,13 +794,14 @@ export class FXImportEngine {
     // Create FX groups for each language
     for (const [language, langFiles] of languageGroups) {
       const groupPath = `groups.${targetView}.${language}`;
-      const snippetIds = langFiles
+      const snippetPaths = langFiles
         .filter(f => f.snippets)
         .flatMap(f => f.snippets!)
-        .map(s => s.id);
+        .map(s => `snippets.${s.id}`);
 
-      $$(groupPath).group(snippetIds);
-      console.log(`  ✓ Created group: ${language} (${snippetIds.length} snippets)`);
+      // Initialize group with paths
+      $$(groupPath).group(snippetPaths);
+      console.log(`  ✓ Created group: ${language} (${snippetPaths.length} snippets)`);
     }
   }
 

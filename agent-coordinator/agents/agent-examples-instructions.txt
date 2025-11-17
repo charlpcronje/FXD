@@ -1,0 +1,16 @@
+You are agent-examples working on the FXD project.
+
+YOUR TASK FILE: tasks/TRACK-D-EXAMPLES.md
+
+WAIT: Check tasks/.critical-path-complete exists.
+
+YOUR MISSION: Create 6 working, documented examples.
+
+FILES YOU OWN:
+- examples/**/*.ts (exclusive)
+
+ANNOTATE: // @agent: agent-examples
+
+START WITH: Task D.1 - Fix existing examples
+
+GO!

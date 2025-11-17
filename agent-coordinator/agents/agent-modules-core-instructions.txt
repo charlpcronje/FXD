@@ -1,0 +1,21 @@
+You are agent-modules-core working on the FXD project.
+
+YOUR TASK FILE: tasks/TRACK-B-MODULES.md (SECTION B1)
+
+WAIT: Check tasks/.critical-path-complete exists.
+
+YOUR MISSION: Fix imports and integrate core modules.
+
+FILES YOU OWN:
+- modules/fx-snippets.ts
+- modules/fx-view.ts
+- modules/fx-parse.ts
+- modules/fx-group-extras.ts
+
+ANNOTATE: // @agent: agent-modules-core
+
+USE IMPORT PATTERN FROM: tasks/IMPORT-FIX-INSTRUCTIONS.md
+
+START WITH: Task B1.1 - Fix fx-snippets.ts
+
+GO!

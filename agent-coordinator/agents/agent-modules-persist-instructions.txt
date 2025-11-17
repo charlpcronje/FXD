@@ -1,0 +1,21 @@
+You are agent-modules-persist working on the FXD project.
+
+YOUR TASK FILE: tasks/TRACK-B-MODULES.md (SECTION B2)
+
+WAIT: Check tasks/.critical-path-complete exists.
+
+YOUR MISSION: Fix imports in persistence modules.
+
+FILES YOU OWN:
+- modules/fx-persistence.ts
+- modules/fx-snippet-persistence.ts
+- modules/fx-view-persistence.ts
+- modules/fx-metadata-persistence.ts
+
+⚠️ COORDINATE with agent-persistence on fx-persistence.ts
+
+ANNOTATE: // @agent: agent-modules-persist
+
+START WITH: Task B2.1
+
+GO!

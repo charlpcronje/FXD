@@ -1,4 +1,23 @@
-// Group extensions for FXD - extends FX Group API with snippet-specific functionality
+// ═══════════════════════════════════════════════════════════════
+// @agent: agent-modules-core
+// @timestamp: 2025-10-02T10:22:00Z
+// @task: TRACK-B-MODULES.md#B1.4
+// @status: in_progress
+// @notes: Fixed imports to resolve $$, $_$$, fx from fxn.ts core
+//         Group extensions for FXD - extends FX Group API with snippet-specific functionality
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// Core FX Imports
+// ═══════════════════════════════════════════════════════════════
+
+import { $$, $_$$, fx } from '../fxn.ts';
+import type { FXNode, FXNodeProxy, GroupWrapper } from '../fxn.ts';
+
+// ═══════════════════════════════════════════════════════════════
+// Module Imports
+// ═══════════════════════════════════════════════════════════════
+
 import { renderView } from "./fx-view.ts";
 import { toPatches, applyPatches } from "./fx-parse.ts";
 import { isSnippet, findBySnippetId } from "./fx-snippets.ts";
@@ -6,7 +25,7 @@ import { isSnippet, findBySnippetId } from "./fx-snippets.ts";
 // Legacy functions for compatibility
 export function groupList(viewPath: string) {
     const g = $$(viewPath).group();
-    return g.list ? g.list() : (g.items ? g.items() : []); // adapt if your Group exposes a different name
+    return g.list(); // GroupWrapper always has list()
 }
 
 export function groupMapStrings(viewPath: string, map: (it: any, idx: number) => string, sep = "\n\n") {
@@ -56,7 +75,7 @@ export function extendGroups() {
     // List only snippets (filter by __type="snippet")
     proto.listSnippets = function() {
         const items = this.list();
-        return items.filter(item => {
+        return items.filter((item: FXNodeProxy) => {
             const node = item.node();
             return isSnippet(node);
         });
@@ -70,17 +89,19 @@ export function extendGroups() {
     // Render all snippets with markers
     proto.concatWithMarkers = async function(lang: string = "js", opts: any = {}) {
         const snippets = this.listSnippets();
-        
+
         // Import wrapSnippet dynamically to avoid circular dependency
         const { wrapSnippet } = await import("./fx-snippets.ts");
-        
-        const rendered = snippets.map(s => {
+
+        const rendered = snippets.map((s: FXNodeProxy) => {
             const node = s.node();
-            const meta = node.__meta || {};
+            const meta = (node as any).__meta || {};
             const value = s.val();
-            return wrapSnippet(meta.id, value, lang, meta);
+            // Use snippet's own language if available, otherwise use parameter
+            const snippetLang = meta.lang || lang;
+            return wrapSnippet(meta.id, value, snippetLang, meta);
         });
-        
+
         const separator = opts.separator || "\n\n";
         return rendered.join(separator);
     };
@@ -90,58 +111,95 @@ export function extendGroups() {
         // Create a temporary view path
         const tempPath = `_temp_view_${Date.now()}`;
         const node = $$(tempPath).node();
-        node.__group = getUnderlyingGroup(this);
-        
+        (node as any).__group = getUnderlyingGroup(this);
+
         // Render using the view system
         return renderView(tempPath, opts);
     };
     
-    // Filter by file
+    // Filter by file - returns NEW group to avoid clearing issues
     proto.byFile = function(filename: string) {
-        this.include(`.snippet[file="${filename}"]`);
-        return this;
+        const items = this.list();
+        const filtered = items.filter((item: FXNodeProxy) => {
+            const node = item.node();
+            const meta = (node as any).__meta || {};
+            return meta.file === filename;
+        });
+
+        // Create a new temporary group and add filtered items
+        const tempPath = `_filter_${Date.now()}_${Math.random()}`;
+        const newGroup = $$(tempPath).group([]);
+
+        filtered.forEach((item: any) => {
+            newGroup.add(item);
+        });
+
+        return newGroup;
     };
-    
-    // Filter by language
+
+    // Filter by language - returns NEW group to avoid clearing issues
     proto.byLang = function(language: string) {
-        this.include(`.snippet[lang="${language}"]`);
-        return this;
+        const items = this.list();
+        const filtered = items.filter((item: FXNodeProxy) => {
+            const node = item.node();
+            const meta = (node as any).__meta || {};
+            return meta.lang === language;
+        });
+
+        // Create a new temporary group and add filtered items
+        const tempPath = `_filter_${Date.now()}_${Math.random()}`;
+        const newGroup = $$(tempPath).group([]);
+
+        filtered.forEach((item: any) => {
+            newGroup.add(item);
+        });
+
+        return newGroup;
     };
     
-    // Sort by order property
+    // Sort by order property - returns new group
     proto.sortByOrder = function() {
         const items = this.list().sort((a: any, b: any) => {
             const aOrder = a.node().__meta?.order ?? 999;
             const bOrder = b.node().__meta?.order ?? 999;
             return aOrder - bOrder;
         });
-        
-        // Clear and re-add in sorted order
-        this.clear();
-        items.forEach((item: any) => this.add(item));
-        return this;
+
+        // Create a new group with sorted items
+        const tempPath = `_sorted_${Date.now()}_${Math.random()}`;
+        const newGroup = $$(tempPath).group([]);
+
+        items.forEach((item: any) => {
+            newGroup.add(item);
+        });
+
+        return newGroup;
     };
-    
-    // Reorder a specific snippet
+
+    // Reorder a specific snippet - returns new group
     proto.reorder = function(snippetId: string, newIndex: number) {
         const items = this.list();
-        const currentIndex = items.findIndex((item: any) => 
+        const currentIndex = items.findIndex((item: any) =>
             item.node().__meta?.id === snippetId
         );
-        
+
         if (currentIndex === -1) return this;
-        
+
         // Remove from current position
         const [item] = items.splice(currentIndex, 1);
-        
+
         // Insert at new position
         items.splice(newIndex, 0, item);
-        
-        // Clear and re-add in new order
-        this.clear();
-        items.forEach((item: any) => this.add(item));
-        
-        return this;
+
+        // Create a new group with reordered items
+        const tempPath = `_reordered_${Date.now()}_${Math.random()}`;
+        const newGroup = $$(tempPath).group([]);
+
+        items.forEach((item: any) => {
+            newGroup.add(item);
+        });
+
+        return newGroup;
     };
     
     // Parse text into group

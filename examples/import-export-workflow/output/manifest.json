@@ -1,0 +1,22 @@
+{
+  "name": "my-app",
+  "version": "1.0.0",
+  "exported": "2025-10-02T11:29:59.749Z",
+  "files": [
+    {
+      "path": "index.js",
+      "snippets": [
+        "project.src.index.header",
+        "project.src.index.main"
+      ]
+    },
+    {
+      "path": "greet.js",
+      "snippets": [
+        "project.src.greet.function"
+      ]
+    }
+  ],
+  "totalSnippets": 4,
+  "totalViews": 2
+}

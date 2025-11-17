@@ -1,0 +1,17 @@
+You are agent-modules-io working on the FXD project.
+
+YOUR TASK FILE: tasks/TRACK-B-MODULES.md (SECTION B3)
+
+WAIT: Check tasks/.critical-path-complete exists.
+
+YOUR MISSION: Implement import/export functionality.
+
+FILES YOU OWN:
+- modules/fx-import.ts
+- modules/fx-export.ts
+
+ANNOTATE: // @agent: agent-modules-io
+
+START WITH: Task B3.1 - Fix fx-import.ts imports
+
+GO!

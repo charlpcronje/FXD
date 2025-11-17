@@ -1,4 +1,27 @@
+// ═══════════════════════════════════════════════════════════════
+// @agent: agent-modules-core
+// @timestamp: 2025-10-02T10:20:00Z
+// @task: TRACK-B-MODULES.md#B1.3
+// @status: in_progress
+// @notes: Fixed imports to resolve $$, $_$$, fx from fxn.ts core
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// Core FX Imports
+// ═══════════════════════════════════════════════════════════════
+
+import { $$, $_$$, fx } from '../fxn.ts';
+import type { FXNode, FXNodeProxy } from '../fxn.ts';
+
+// ═══════════════════════════════════════════════════════════════
+// Module Imports
+// ═══════════════════════════════════════════════════════════════
+
 import { normalizeEol, findBySnippetId, simpleHash, indexSnippet, createSnippet } from "./fx-snippets.ts";
+
+// ═══════════════════════════════════════════════════════════════
+// Module Types
+// ═══════════════════════════════════════════════════════════════
 
 export type Patch = { id: string; value: string; checksum?: string; version?: number };
 
@@ -8,10 +31,11 @@ const RE_END = /^FX:END\s+id=([^\s]+)\s*$/;
 // Stricter: only treat as metadata if line starts with a comment token AND has an FX marker
 function stripFence(line: string) {
     const trimmed = line.trim();
-    if (!/^([#/;]|\/\*|""")/.test(trimmed) || !/FX:(BEGIN|END)\b/.test(trimmed)) return line;
+    // Check for comment patterns including HTML comments (<!--)
+    if (!/^([#/;]|\/\*|<!--|""")/.test(trimmed) || !/FX:(BEGIN|END)\b/.test(trimmed)) return line;
     return trimmed
-        .replace(/^((\/\*)|(#)|(;)|(\/\/)|("""))\s?/, "")
-        .replace(/\s?(\*\/|""")\s*$/, "")
+        .replace(/^((\/\*)|(#)|(;)|(\/\/)|(<!--)|("""))\s?/, "")
+        .replace(/\s?(\*\/|-->|""")\s*$/, "")
         .trim();
 }
 
@@ -105,26 +129,40 @@ export function applyPatchesBatch(
     const backups = new Map<string, any>();
     const succeeded: Patch[] = [];
     const failed: Array<{ patch: Patch; error: string }> = [];
-    
+    const failedIds = new Set<string>(); // Track which patches failed validation
+
     // Validation phase
     if (validateFirst) {
         for (const patch of patches) {
             const known = findBySnippetId(patch.id);
             if (!known && onMissing === "skip") {
-                failed.push({ 
-                    patch, 
-                    error: `Snippet ${patch.id} not found and onMissing is 'skip'` 
+                failed.push({
+                    patch,
+                    error: `Snippet ${patch.id} not found and onMissing is 'skip'`
                 });
+                failedIds.add(patch.id);
             }
         }
-        
+
         if (transaction && failed.length > 0) {
-            return { succeeded: [], failed, rollbackAvailable: false };
+            // In transaction mode, mark ALL patches as failed if any fail validation
+            const allFailed = patches.map(p => ({
+                patch: p,
+                error: failedIds.has(p.id)
+                    ? failed.find(f => f.patch.id === p.id)!.error
+                    : "Transaction aborted due to validation failure"
+            }));
+            return { succeeded: [], failed: allFailed, rollbackAvailable: true };
         }
     }
-    
-    // Application phase
+
+    // Application phase - skip patches that already failed validation
     for (const patch of patches) {
+        // Skip patches that failed validation
+        if (failedIds.has(patch.id)) {
+            continue;
+        }
+
         try {
             const known = findBySnippetId(patch.id);
             

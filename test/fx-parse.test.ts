@@ -1,20 +1,49 @@
-import { assertEquals, assertExists } from "https://deno.land/std@0.208.0/assert/mod.ts";
+// ═══════════════════════════════════════════════════════════════
+// @agent: agent-test-infra
+// @timestamp: 2025-10-02T07:30:00Z
+// @task: TRACK-A-TESTS.md#A.1
+// @status: in_progress
+// @notes: Fixed imports to use fxn.ts, added proper annotations
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// Test Framework Imports
+// ═══════════════════════════════════════════════════════════════
+
+import {
+  assertEquals,
+  assertExists,
+  assert
+} from "https://deno.land/std/assert/mod.ts";
 import { beforeEach, describe, it } from "https://deno.land/std@0.208.0/testing/bdd.ts";
-import { 
-    toPatches, 
+
+// ═══════════════════════════════════════════════════════════════
+// FX Core Imports
+// ═══════════════════════════════════════════════════════════════
+
+import { $$, $_$$, fx } from "../fxn.ts";
+import type { FXNode, FXNodeProxy } from "../fxn.ts";
+
+// ═══════════════════════════════════════════════════════════════
+// Module Under Test
+// ═══════════════════════════════════════════════════════════════
+
+import {
+    toPatches,
     applyPatches,
     applyPatchesBatch,
     detectConflicts,
     type Patch
 } from "../modules/fx-parse.ts";
-import { createSnippet, normalizeEol, simpleHash } from "../modules/fx-snippets.ts";
+import { createSnippet, normalizeEol, simpleHash, clearSnippetIndex } from "../modules/fx-snippets.ts";
 
-// Import and initialize FX
-import { $$, $_$$ } from "../fx.ts";
+// ═══════════════════════════════════════════════════════════════
+// Global Setup (REQUIRED for tests)
+// ═══════════════════════════════════════════════════════════════
 
-// Make FX available globally
 globalThis.$$ = $$;
-globalThis.$ = $_$$;
+globalThis.$_$$ = $_$$;
+globalThis.fx = fx;
 
 describe("fx-parse", () => {
     beforeEach(() => {
@@ -25,6 +54,8 @@ describe("fx-parse", () => {
                 delete root.__nodes[key];
             }
         }
+        // Clear snippet index to prevent test pollution
+        clearSnippetIndex();
     });
 
     describe("toPatches", () => {

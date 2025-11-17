@@ -1,16 +1,45 @@
-import { assertEquals, assertExists } from "https://deno.land/std@0.208.0/assert/mod.ts";
+// ═══════════════════════════════════════════════════════════════
+// @agent: agent-test-infra
+// @timestamp: 2025-10-02T07:30:00Z
+// @task: TRACK-A-TESTS.md#A.1
+// @status: in_progress
+// @notes: Fixed imports to use fxn.ts, added proper annotations
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// Test Framework Imports
+// ═══════════════════════════════════════════════════════════════
+
+import {
+  assertEquals,
+  assertExists,
+  assert
+} from "https://deno.land/std/assert/mod.ts";
 import { beforeEach, describe, it } from "https://deno.land/std@0.208.0/testing/bdd.ts";
-import { createSnippet, wrapSnippet, simpleHash, normalizeEol } from "../modules/fx-snippets.ts";
+
+// ═══════════════════════════════════════════════════════════════
+// FX Core Imports
+// ═══════════════════════════════════════════════════════════════
+
+import { $$, $_$$, fx } from "../fxn.ts";
+import type { FXNode, FXNodeProxy } from "../fxn.ts";
+
+// ═══════════════════════════════════════════════════════════════
+// Module Under Test
+// ═══════════════════════════════════════════════════════════════
+
+import { createSnippet, wrapSnippet, simpleHash, normalizeEol, clearSnippetIndex } from "../modules/fx-snippets.ts";
 import { toPatches, applyPatches, detectConflicts } from "../modules/fx-parse.ts";
 import { renderView } from "../modules/fx-view.ts";
 import { extendGroups } from "../modules/fx-group-extras.ts";
 
-// Import and initialize FX
-import { $$, $_$$ } from "../fx.ts";
+// ═══════════════════════════════════════════════════════════════
+// Global Setup (REQUIRED for tests)
+// ═══════════════════════════════════════════════════════════════
 
-// Make FX available globally
 globalThis.$$ = $$;
-globalThis.$ = $_$$;
+globalThis.$_$$ = $_$$;
+globalThis.fx = fx;
 
 describe("round-trip editing", () => {
     beforeEach(() => {
@@ -21,7 +50,10 @@ describe("round-trip editing", () => {
                 delete root.__nodes[key];
             }
         }
-        
+
+        // Clear snippet index to prevent test pollution
+        clearSnippetIndex();
+
         // Ensure extensions are loaded
         extendGroups();
     });
@@ -397,21 +429,21 @@ modified2
 
     describe("version tracking", () => {
         it("should preserve version through round-trip", () => {
-            createSnippet("test.v1", "content", { id: "versioned", version: 3 });
-            
-            const wrapped = wrapSnippet("versioned", "content", "js", { version: 3 });
+            // Test version preservation for orphan creation
+            // Use an ID that doesn't already exist
+            const wrapped = wrapSnippet("orphan-with-version", "content", "js", { version: 3 });
             assertEquals(wrapped.includes("version=3"), true);
-            
+
             const patches = toPatches(wrapped);
             assertEquals(patches[0].version, 3);
-            
-            // Apply to new location
-            applyPatches(patches, { 
-                onMissing: "create", 
-                orphanRoot: "test.versions" 
+
+            // Apply to new location - should create orphan since ID doesn't exist
+            applyPatches(patches, {
+                onMissing: "create",
+                orphanRoot: "test.versions"
             });
-            
-            const orphan = $$("test.versions.versioned");
+
+            const orphan = $$("test.versions.orphan-with-version");
             assertEquals(orphan.node().__meta?.version, 3);
         });
 

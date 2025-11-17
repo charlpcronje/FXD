@@ -1,0 +1,102 @@
+{
+  "path": "project",
+  "type": "raw",
+  "children": {
+    "package": {
+      "path": "project.package",
+      "type": "raw",
+      "children": {
+        "json": {
+          "path": "project.package.json",
+          "value": {
+            "raw": "{\n  \"name\": \"my-app\",\n  \"version\": \"1.0.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"start\": \"node index.js\",\n    \"test\": \"node test.js\"\n  }\n}",
+            "parsed": "{\n  \"name\": \"my-app\",\n  \"version\": \"1.0.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"start\": \"node index.js\",\n    \"test\": \"node test.js\"\n  }\n}",
+            "stringified": "{\n  \"name\": \"my-app\",\n  \"version\": \"1.0.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"start\": \"node index.js\",\n    \"test\": \"node test.js\"\n  }\n}",
+            "boolean": true
+          },
+          "type": "snippet",
+          "meta": {
+            "lang": "json",
+            "file": "package.json",
+            "id": "project.package.json",
+            "order": 0,
+            "version": 1
+          },
+          "children": {}
+        }
+      }
+    },
+    "src": {
+      "path": "project.src",
+      "type": "raw",
+      "children": {
+        "index": {
+          "path": "project.src.index",
+          "type": "raw",
+          "children": {
+            "header": {
+              "path": "project.src.index.header",
+              "value": {
+                "raw": "import { greet } from './greet.js';",
+                "parsed": "import { greet } from './greet.js';",
+                "stringified": "import { greet } from './greet.js';",
+                "boolean": true
+              },
+              "type": "snippet",
+              "meta": {
+                "lang": "js",
+                "file": "src/index.js",
+                "id": "project.src.index.header",
+                "order": 0,
+                "version": 1
+              },
+              "children": {}
+            },
+            "main": {
+              "path": "project.src.index.main",
+              "value": {
+                "raw": "const name = process.argv[2] || 'World';\nconsole.log(greet(name));",
+                "parsed": "const name = process.argv[2] || 'World';\nconsole.log(greet(name));",
+                "stringified": "const name = process.argv[2] || 'World';\nconsole.log(greet(name));",
+                "boolean": true
+              },
+              "type": "snippet",
+              "meta": {
+                "lang": "js",
+                "file": "src/index.js",
+                "id": "project.src.index.main",
+                "order": 1,
+                "version": 1
+              },
+              "children": {}
+            }
+          }
+        },
+        "greet": {
+          "path": "project.src.greet",
+          "type": "raw",
+          "children": {
+            "function": {
+              "path": "project.src.greet.function",
+              "value": {
+                "raw": "export function greet(name) {\n  return `Hello, ${name}!`;\n}",
+                "parsed": "export function greet(name) {\n  return `Hello, ${name}!`;\n}",
+                "stringified": "export function greet(name) {\n  return `Hello, ${name}!`;\n}",
+                "boolean": true
+              },
+              "type": "snippet",
+              "meta": {
+                "lang": "js",
+                "file": "src/greet.js",
+                "id": "project.src.greet.function",
+                "order": 0,
+                "version": 1
+              },
+              "children": {}
+            }
+          }
+        }
+      }
+    }
+  }
+}

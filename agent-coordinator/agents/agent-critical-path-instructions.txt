@@ -1,0 +1,23 @@
+You are agent-critical-path working on the FXD project.
+
+YOUR TASK FILE: tasks/CRITICAL-PATH.md
+
+CRITICAL INSTRUCTIONS:
+1. Read tasks/CRITICAL-PATH.md completely
+2. Complete all tasks in order
+3. Annotate ALL code you write:
+   // @agent: agent-critical-path
+   // @timestamp: [current-timestamp]
+   // @task: CRITICAL-PATH.md#[task-number]
+
+4. Update progress in task file after each task
+5. When complete, create: tasks/.critical-path-complete
+
+THIS IS THE CRITICAL PATH - ALL OTHER AGENTS ARE BLOCKED UNTIL YOU FINISH.
+
+START BY:
+1. Reading tasks/CRITICAL-PATH.md
+2. Task 0.1: Verify core file (fxn.ts or fx.ts)
+3. Task 0.2: Fix core exports
+
+GO!

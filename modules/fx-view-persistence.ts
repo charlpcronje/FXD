@@ -4,7 +4,13 @@
  * Handles storage and reconstruction of FX views/groups in SQLite
  */
 
-import { FXCore, FXNode } from "../fx.ts";
+// @agent: agent-modules-persist
+// @timestamp: 2025-10-02T07:00:00Z
+// @task: TRACK-B-MODULES.md#B2.3
+// @status: in_progress
+
+import { $$, $_$$, fx, FXCore } from '../fxn.ts';
+import type { FXNode } from '../fxn.ts';
 import {
   SQLiteDatabase,
   SQLiteStatement,
@@ -696,5 +702,3 @@ export class ViewPersistence {
 export function createViewPersistence(db: SQLiteDatabase, fx: FXCore): ViewPersistence {
   return new ViewPersistence(db, fx);
 }
-
-export { ViewPersistence };

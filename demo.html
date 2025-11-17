@@ -158,8 +158,9 @@
   <script src="./fx.js"></script>
 
   <script>
-    // Wait for FX to be ready
-    console.log('FX loaded:', typeof $$ !== 'undefined');
+    // Get $$ from the FX global
+    const { $$, fx } = FX;
+    console.log('FX loaded:', typeof $$ !== 'undefined', 'FX:', FX);
 
     function initDemo() {
       console.log('Initializing FXD demo...');

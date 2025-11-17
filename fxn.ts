@@ -1887,6 +1887,7 @@ function cors(res: Response) {
 }
 
 export default fx;
+export { $$, fx, $_$$, $root, $val, $set, $get, $has };
 
 /**
  * Quick refs:
