@@ -1,5 +1,5 @@
 <!-- @agent: agent-docs -->
-# FXD - Quantum Reactive Code Framework
+# FXD - Reactive Code Framework
 
 > **A reactive framework for code organization where every piece of code is a node in a living graph. Built on FX reactive primitives with CSS-like selectors and visual code management.**
 
