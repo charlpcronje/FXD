@@ -43,12 +43,22 @@ describe("fx-persistence", {
     }
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Wait a bit for SQLite to fully release file locks on Windows
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     // Cleanup test database
     try {
       Deno.removeSync(TEST_DB_PATH);
     } catch {
-      // Already deleted
+      // File still locked or already deleted
+    }
+
+    // Clean up journal files
+    try {
+      Deno.removeSync(TEST_DB_PATH + '-journal');
+    } catch {
+      // No journal or still locked
     }
   });
 
