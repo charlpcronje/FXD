@@ -65,8 +65,8 @@ export class FXFilesystemPlugin {
     // Ensure base directory exists
     await Deno.mkdir(this.options.baseDir, { recursive: true });
 
-    // Mirror existing root
-    await this.mirrorNodeTree($_$$.node(), this.options.baseDir, "");
+    // Don't mirror existing tree - only sync new nodes as they're created
+    // This avoids syncing system nodes like config, plugins, modules, etc.
 
     // Start watching if enabled
     if (this.options.watchChanges) {
@@ -138,30 +138,37 @@ export class FXFilesystemPlugin {
    * Write node value to value.fxval file
    */
   private async writeNodeValue(node: FXNode, nodeDir: string): Promise<void> {
-    if (node.__value === undefined) return;
+    try {
+      if (node.__value === undefined) return;
 
-    // Extract raw value from FX value bag
-    let value = node.__value;
-    if (value && typeof value === 'object' && 'raw' in value) {
-      value = value.raw;
+      // Extract raw value from FX value bag
+      let value = node.__value;
+      if (value && typeof value === 'object' && 'raw' in value) {
+        value = value.raw;
+      }
+
+      const valueFile = join(nodeDir, `value${this.options.fileExtension}`);
+
+      let content: string;
+      if (typeof value === 'string') {
+        content = value;
+      } else if (typeof value === 'object' && value !== null) {
+        content = JSON.stringify(value, null, 2);
+      } else {
+        content = String(value);
+      }
+
+      await Deno.writeTextFile(valueFile, content);
+      this.log(`[FX-Filesystem] Wrote value file: ${valueFile}`);
+
+      // Also write type info
+      const typeFile = join(nodeDir, `type${this.options.fileExtension}`);
+      await Deno.writeTextFile(typeFile, node.__type || 'raw');
+      this.log(`[FX-Filesystem] Wrote type file: ${typeFile}`);
+    } catch (error) {
+      console.error(`[FX-Filesystem] Failed to write node value for ${node.__id}:`, error);
+      throw error;
     }
-
-    const valueFile = join(nodeDir, `value${this.options.fileExtension}`);
-
-    let content: string;
-    if (typeof value === 'string') {
-      content = value;
-    } else if (typeof value === 'object') {
-      content = JSON.stringify(value, null, 2);
-    } else {
-      content = String(value);
-    }
-
-    await Deno.writeTextFile(valueFile, content);
-
-    // Also write type info
-    const typeFile = join(nodeDir, `type${this.options.fileExtension}`);
-    await Deno.writeTextFile(typeFile, node.__type || 'raw');
   }
 
   /**
@@ -202,27 +209,35 @@ export class FXFilesystemPlugin {
    * Sync a single node to filesystem
    */
   private async syncNode(nodeId: string): Promise<void> {
-    // Find the node
-    const node = this.findNodeById(nodeId);
-    if (!node) {
-      this.log(`[FX-Filesystem] Node not found: ${nodeId}`);
-      return;
-    }
-
-    let nodeDir = this.nodePathMap.get(nodeId);
-
-    if (!nodeDir) {
-      // Need to determine path
-      const nodePath = this.getNodePath(node);
-      nodeDir = join(this.options.baseDir, nodePath);
-      this.nodePathMap.set(nodeId, nodeDir);
-      this.pathNodeMap.set(nodeDir, nodeId);
-    }
-
     try {
+      // Find the node
+      const node = this.findNodeById(nodeId);
+      if (!node) {
+        this.log(`[FX-Filesystem] Node not found: ${nodeId}`);
+        return;
+      }
+
+      let nodeDir = this.nodePathMap.get(nodeId);
+
+      if (!nodeDir) {
+        // Need to determine path
+        const nodePath = this.getNodePath(node);
+        if (!nodePath) {
+          this.log(`[FX-Filesystem] Could not determine path for ${nodeId}`);
+          return;
+        }
+        nodeDir = join(this.options.baseDir, nodePath);
+        this.nodePathMap.set(nodeId, nodeDir);
+        this.pathNodeMap.set(nodeDir, nodeId);
+      }
+
+      // Ensure directory exists before writing
       await Deno.mkdir(nodeDir, { recursive: true });
+
+      // Write metadata and value
       await this.writeNodeMetadata(node, nodeDir);
       await this.writeNodeValue(node, nodeDir);
+
       this.log(`[FX-Filesystem] Synced ${nodeId} to ${nodeDir}`);
     } catch (error) {
       console.error(`[FX-Filesystem] Failed to sync ${nodeId}:`, error);
@@ -243,13 +258,16 @@ export class FXFilesystemPlugin {
         if (!this.watcher) return;
 
         for await (const event of this.watcher) {
-          // Filter for .fxval files
-          const paths = event.paths.filter(p =>
-            p.endsWith(this.options.fileExtension)
-          );
+          // Filter for .fxval files (handle both modify and create events)
+          const paths = event.paths.filter(p => {
+            // Normalize path separators for consistent checking
+            const normalized = p.replace(/\\/g, '/');
+            return normalized.endsWith(this.options.fileExtension) &&
+                   (event.kind === 'modify' || event.kind === 'create');
+          });
 
           if (paths.length > 0) {
-            // Debounce
+            // Debounce to avoid multiple rapid updates
             await new Promise(resolve => setTimeout(resolve, 100));
             for (const path of paths) {
               await this.syncFileToNode(path);
@@ -268,7 +286,10 @@ export class FXFilesystemPlugin {
    */
   private async syncFileToNode(filePath: string): Promise<void> {
     try {
-      const nodeDir = filePath.substring(0, filePath.lastIndexOf('/'));
+      // Use path separator that works on both Windows and Unix
+      const sep = Deno.build.os === 'windows' ? '\\' : '/';
+      const lastSep = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
+      const nodeDir = filePath.substring(0, lastSep);
       const nodeId = this.pathNodeMap.get(nodeDir);
 
       if (!nodeId) {
@@ -315,27 +336,69 @@ export class FXFilesystemPlugin {
    * Hook into FX to intercept node changes
    */
   setupWatchers(): void {
-    // Watch for value changes on any node
-    const watchNode = (node: FXNode) => {
-      // Watch this node
-      if (!node.__id.startsWith('__')) {
-        $$(node.__id).watch(() => {
-          if (this.options.autoSync) {
-            this.queueSync(node.__id);
+    // Helper to check if a node should be synced
+    const shouldSync = (node: FXNode): boolean => {
+      const nodeId = node.__id;
+      // Skip system nodes
+      if (nodeId.startsWith('__')) return false;
+
+      // Check if node is under a syncable namespace by traversing up
+      let current: FXNode | null = node;
+      const path: string[] = [];
+
+      while (current && current.__parent_id) {
+        const parent = this.findNodeById(current.__parent_id);
+        if (!parent) break;
+
+        // Find key in parent
+        if (parent.__nodes) {
+          for (const [key, child] of Object.entries(parent.__nodes)) {
+            if (child.__id === current.__id) {
+              path.unshift(key);
+              break;
+            }
           }
-        });
+        }
+
+        current = parent;
       }
 
-      // Watch children
-      if (node.__nodes) {
-        for (const child of Object.values(node.__nodes)) {
-          watchNode(child);
-        }
-      }
+      if (path.length === 0) return false;
+
+      // Only sync nodes under certain namespaces
+      const rootNamespace = path[0];
+      const excludedNamespaces = ['config', 'plugins', 'modules', 'atomics', 'dom', 'session', 'system', 'cache', 'code', 'views', 'fs', 'history'];
+      return !excludedNamespaces.includes(rootNamespace);
     };
 
-    watchNode($_$$.node());
-    this.log('[FX-Filesystem] Watchers installed on all nodes');
+    // Hook into FX structure events to watch for new nodes
+    fx.onStructure((event) => {
+      if (event.kind === 'create' && event.node) {
+        if (shouldSync(event.node)) {
+          const nodeId = event.node.__id;
+
+          // Watch this new node
+          $$(nodeId).watch(() => {
+            if (this.options.autoSync) {
+              this.queueSync(nodeId);
+            }
+          });
+
+          // Queue it for immediate sync
+          if (this.options.autoSync) {
+            this.queueSync(nodeId);
+          }
+        }
+      } else if (event.kind === 'mutate' && event.node) {
+        if (shouldSync(event.node)) {
+          if (this.options.autoSync) {
+            this.queueSync(event.node.__id);
+          }
+        }
+      }
+    });
+
+    this.log('[FX-Filesystem] Watchers installed for structure events');
   }
 
   /**

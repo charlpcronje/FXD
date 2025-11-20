@@ -1,0 +1,211 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Custom selection */
+::selection {
+  background: rgba(52, 152, 219, 0.3);
+}
+
+/* Utility classes */
+@layer utilities {
+  .glass {
+    @apply bg-white/5 backdrop-blur-md border border-white/10;
+  }
+
+  .glass-dark {
+    @apply bg-black/20 backdrop-blur-md border border-white/5;
+  }
+
+  .glow {
+    @apply shadow-[0_0_20px_rgba(52,152,219,0.5)];
+  }
+
+  .glow-success {
+    @apply shadow-[0_0_20px_rgba(46,204,113,0.5)];
+  }
+
+  .glow-error {
+    @apply shadow-[0_0_20px_rgba(231,76,60,0.5)];
+  }
+
+  .glow-warning {
+    @apply shadow-[0_0_20px_rgba(243,156,18,0.5)];
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r;
+  }
+
+  .text-gradient-primary {
+    @apply text-gradient from-blue-400 to-cyan-400;
+  }
+
+  .text-gradient-success {
+    @apply text-gradient from-green-400 to-emerald-400;
+  }
+
+  .text-gradient-error {
+    @apply text-gradient from-red-400 to-rose-400;
+  }
+}
+
+/* Component styles */
+.panel {
+  @apply glass-dark rounded-lg p-4;
+}
+
+.button {
+  @apply px-4 py-2 rounded-lg transition-all duration-200;
+  @apply hover:bg-white/10 active:scale-95;
+}
+
+.button-primary {
+  @apply button bg-blue-500 hover:bg-blue-600 text-white;
+}
+
+.button-secondary {
+  @apply button bg-white/5 hover:bg-white/10 text-white;
+}
+
+.button-danger {
+  @apply button bg-red-500 hover:bg-red-600 text-white;
+}
+
+.input {
+  @apply px-3 py-2 rounded-lg bg-white/5 border border-white/10;
+  @apply focus:outline-none focus:border-blue-500 transition-colors;
+}
+
+.tooltip {
+  @apply absolute z-50 px-2 py-1 text-xs rounded bg-black/90 text-white;
+  @apply pointer-events-none whitespace-nowrap;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* Circuit board theme */
+.circuit-node {
+  @apply relative;
+}
+
+.circuit-node::before {
+  content: '';
+  @apply absolute inset-0 rounded-full;
+  @apply bg-gradient-radial from-current to-transparent;
+  @apply opacity-20 blur-md;
+}
+
+/* Node glow effect */
+.node-active {
+  @apply animate-pulse-ring;
+  filter: drop-shadow(0 0 10px currentColor);
+}
+
+.node-error {
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+/* Connection particles */
+.particle {
+  @apply absolute w-2 h-2 rounded-full;
+  animation: particle 2s linear infinite;
+}
+
+/* Performance indicators */
+.fps-good {
+  @apply text-green-400;
+}
+
+.fps-medium {
+  @apply text-yellow-400;
+}
+
+.fps-bad {
+  @apply text-red-400;
+}
+
+/* Code syntax highlighting */
+.code {
+  @apply font-mono text-sm bg-black/50 rounded px-2 py-1;
+}
+
+.code-keyword {
+  @apply text-purple-400;
+}
+
+.code-string {
+  @apply text-green-400;
+}
+
+.code-number {
+  @apply text-blue-400;
+}
+
+.code-comment {
+  @apply text-gray-500;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+  .panel {
+    @apply p-2;
+  }
+
+  .button {
+    @apply px-3 py-1.5 text-sm;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

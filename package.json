@@ -1,9 +1,15 @@
 {
-  "name": "fxd-testing-suite",
+  "name": "fxd-quantum-visualizer",
   "version": "1.0.0",
-  "description": "Comprehensive testing suite for FXD (FX Disk) framework",
-  "type": "module",
+  "description": "FXD Quantum Desktop Visualizer - 3D visualization for FXD framework",
+  "main": "electron-main.js",
+  "type": "commonjs",
   "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build": "electron-builder --win",
+    "build:all": "electron-builder --win --mac --linux",
+    "dist": "electron-builder",
     "test": "node --test test-node/**/*.test.js",
     "test:watch": "node --test --watch test-node/**/*.test.js",
     "test:coverage": "node --test --experimental-test-coverage test-node/**/*.test.js",
@@ -27,24 +33,74 @@
     "test:sections-3-5": "npm run test:new",
     "coverage": "node test-node/coverage/coverage-reporter.js",
     "lint": "eslint test-node/**/*.js",
-    "format": "prettier --write test-node/**/*.js",
-    "build": "echo 'Build process would go here'",
-    "pretest": "npm run lint",
-    "posttest": "npm run coverage"
+    "format": "prettier --write test-node/**/*.js"
   },
   "devDependencies": {
-    "puppeteer": "^21.5.0",
-    "sqlite3": "^5.1.6",
-    "prettier": "^3.0.0",
-    "eslint": "^8.50.0",
     "benchmark": "^2.1.4",
     "chai": "^4.3.10",
-    "mocha": "^10.2.0"
+    "electron": "^39.2.3",
+    "electron-builder": "^26.0.12",
+    "eslint": "^8.50.0",
+    "mocha": "^10.2.0",
+    "prettier": "^3.0.0",
+    "puppeteer": "^21.5.0",
+    "sqlite3": "^5.1.6"
   },
-  "keywords": ["fxd", "testing", "quantum", "reactive", "framework"],
-  "author": "FXD Testing Team",
+  "keywords": [
+    "fxd",
+    "testing",
+    "quantum",
+    "reactive",
+    "framework"
+  ],
+  "author": "FXD Project",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "build": {
+    "appId": "com.fxd.visualizer",
+    "productName": "FXD Quantum Visualizer",
+    "copyright": "Copyright © 2025 FXD Project",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "fileAssociations": [
+        {
+          "ext": "fxd",
+          "name": "FXD File",
+          "description": "FXD Quantum Development File",
+          "icon": "assets/icon.png",
+          "role": "Editor"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "FXD Visualizer",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "include": "installer.nsh"
+    },
+    "directories": {
+      "output": "build",
+      "buildResources": "assets"
+    },
+    "files": [
+      "electron-main.js",
+      "electron-renderer.html",
+      "electron-visualizer.js",
+      "assets/**/*",
+      "node_modules/**/*"
+    ]
   }
 }

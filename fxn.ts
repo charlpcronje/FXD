@@ -50,6 +50,7 @@ export interface FXNode {
     __effects: Function[];
     __watchers: Set<(nv: unknown, ov: unknown) => void>;
     __meta?: Record<string, any>; // optional metadata (e.g., { can: ['user'] })
+    __version?: number; // Version number for signals (FXOS compatibility)
 }
 
 export type FXMutableValue = unknown;
@@ -307,6 +308,10 @@ export class FXCore {
     private __batchTimer: any = null;
     private __batchedEvents: any[] = [];
 
+    // Signals system (lazy-loaded)
+    private __signalStream?: any;
+    private __signalEmitter?: any;
+
     constructor() {
         this.root = this.createNode(null);
         this.moduleLoader = new SyncModuleLoader();
@@ -375,6 +380,7 @@ export class FXCore {
             __instances: new Map(),
             __effects: [],
             __watchers: new Set(),
+            __version: 0,
         };
     }
 
@@ -386,6 +392,9 @@ export class FXCore {
         this.triggerEffects(node, "after.set", "__value", node.__value);
         node.__watchers.forEach(cb => { try { cb(node.__value, old); } catch (e) { console.error(e); } });
         this.emitStructure({ kind: "mutate", node });
+
+        // Emit signal if signal system is enabled
+        this.emitValueSignal(node, old, node.__value);
     }
 
     set(node: FXNode, value: any) {
@@ -461,6 +470,9 @@ export class FXCore {
                 cur.__nodes[k] = created;
                 this.__parentMap.set(created.__id, cur);
                 this.emitStructure({ kind: "create", node: created, parent: cur, key: k });
+
+                // Emit child add signal
+                this.emitChildAddSignal(cur, k, created.__id);
             }
             cur = cur.__nodes[k];
         }
@@ -476,6 +488,46 @@ export class FXCore {
     triggerEffects(node: FXNode, event: string, key: string, value: any) {
         const proxy = this.createNodeProxy(node);
         for (const eff of node.__effects) { try { eff(event, proxy, key, value); } catch (e) { console.error(e); } }
+    }
+
+    // Signal emission methods (lazy-loaded)
+    private emitValueSignal(node: FXNode, oldValue: any, newValue: any) {
+        if (!this.__signalEmitter) return;
+
+        const baseVersion = node.__version || 0;
+        const newVersion = baseVersion + 1;
+        node.__version = newVersion;
+
+        try {
+            this.__signalEmitter.emitValue(node.__id, oldValue, newValue, baseVersion, newVersion);
+        } catch (e) {
+            // Silently ignore signal errors to not break normal operations
+        }
+    }
+
+    private emitChildAddSignal(node: FXNode, key: string, childId: string) {
+        if (!this.__signalEmitter) return;
+
+        const baseVersion = node.__version || 0;
+        const newVersion = baseVersion + 1;
+        node.__version = newVersion;
+
+        try {
+            this.__signalEmitter.emitChildAdd(node.__id, key, childId, baseVersion, newVersion);
+        } catch (e) {
+            // Silently ignore signal errors
+        }
+    }
+
+    // Enable signals (called from signal module)
+    enableSignals(signalStream: any, signalEmitter: any) {
+        this.__signalStream = signalStream;
+        this.__signalEmitter = signalEmitter;
+    }
+
+    // Get signal stream (if enabled)
+    getSignalStream() {
+        return this.__signalStream;
     }
 
     createNodeProxy<V extends FXMutableValue, T extends object>(node: FXNode): FXNodeProxy<V, T> {

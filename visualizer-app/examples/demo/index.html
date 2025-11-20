@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FX Visualizer Demo - Interactive Example</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Monaco', 'Consolas', monospace;
+        background: linear-gradient(135deg, #0a0a0a 0%, #1a3a1a 100%);
+        color: #ffffff;
+        overflow: hidden;
+      }
+
+      #visualizer {
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 300px;
+        z-index: 1000;
+      }
+
+      #controls h2 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        background: linear-gradient(45deg, #3498db, #2ecc71);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .control-group {
+        margin-bottom: 15px;
+      }
+
+      .control-group label {
+        display: block;
+        font-size: 12px;
+        color: #95a5a6;
+        margin-bottom: 5px;
+      }
+
+      button {
+        background: rgba(52, 152, 219, 0.2);
+        border: 1px solid rgba(52, 152, 219, 0.5);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+        width: 100%;
+        margin-bottom: 8px;
+      }
+
+      button:hover {
+        background: rgba(52, 152, 219, 0.4);
+        transform: translateY(-1px);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      input[type="range"] {
+        width: 100%;
+        margin: 8px 0;
+      }
+
+      select {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        padding: 8px;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+
+      .stats {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 15px;
+        font-size: 12px;
+        z-index: 1000;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+      }
+
+      .stat-label {
+        color: #95a5a6;
+      }
+
+      .stat-value {
+        color: #3498db;
+        font-weight: bold;
+      }
+
+      .info {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 350px;
+        font-size: 12px;
+        z-index: 1000;
+      }
+
+      .info h3 {
+        font-size: 14px;
+        margin-bottom: 10px;
+        color: #3498db;
+      }
+
+      .info p {
+        margin-bottom: 8px;
+        color: #95a5a6;
+        line-height: 1.5;
+      }
+
+      .info kbd {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="visualizer"></div>
+
+    <div id="controls">
+      <h2>FX Visualizer Demo</h2>
+
+      <div class="control-group">
+        <label>Quick Actions</label>
+        <button onclick="addRandomNode()">Add Random Node</button>
+        <button onclick="updateRandomNode()">Update Random Node</button>
+        <button onclick="createSnapshot()">Create Snapshot</button>
+        <button onclick="clearGraph()">Clear Graph</button>
+      </div>
+
+      <div class="control-group">
+        <label>Camera Preset</label>
+        <select onchange="applyPreset(this.value)">
+          <option value="0">Default</option>
+          <option value="1">Top View</option>
+          <option value="2">Side View</option>
+          <option value="3">Front View</option>
+          <option value="4">Layers View</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Layout Algorithm</label>
+        <select onchange="changeLayout(this.value)">
+          <option value="force">Force-Directed</option>
+          <option value="hierarchical">Hierarchical</option>
+          <option value="circular">Circular</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Node Count: <span id="node-count">0</span></label>
+        <input type="range" min="0" max="100" value="10" oninput="setNodeCount(this.value)" />
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-row">
+        <span class="stat-label">FPS:</span>
+        <span class="stat-value" id="fps">60</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Nodes:</span>
+        <span class="stat-value" id="nodes">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Connections:</span>
+        <span class="stat-value" id="connections">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Updates/s:</span>
+        <span class="stat-value" id="updates">0</span>
+      </div>
+    </div>
+
+    <div class="info">
+      <h3>Keyboard Shortcuts</h3>
+      <p><kbd>F</kbd> - Focus selected node</p>
+      <p><kbd>A</kbd> - Fit all nodes</p>
+      <p><kbd>1-5</kbd> - Camera presets</p>
+      <p><kbd>Space</kbd> - Play/Pause timeline</p>
+      <p><kbd>Ctrl+I</kbd> - Toggle inspector</p>
+      <p><kbd>Ctrl+Shift+C</kbd> - Toggle console</p>
+      <p><kbd>Ctrl+K</kbd> - Command palette</p>
+      <p><kbd>G</kbd> - Toggle grid</p>
+      <p><kbd>L</kbd> - Toggle labels</p>
+    </div>
+
+    <script type="module">
+      import { FXVisualizer } from '../../src/main';
+
+      // Demo functions will be added by app.ts
+      window.visualizerDemo = {
+        addRandomNode: () => console.log('Add random node'),
+        updateRandomNode: () => console.log('Update random node'),
+        createSnapshot: () => console.log('Create snapshot'),
+        clearGraph: () => console.log('Clear graph'),
+        applyPreset: (index) => console.log('Apply preset', index),
+        changeLayout: (algorithm) => console.log('Change layout', algorithm),
+        setNodeCount: (count) => console.log('Set node count', count),
+      };
+    </script>
+    <script type="module" src="./app.ts"></script>
+  </body>
+</html>

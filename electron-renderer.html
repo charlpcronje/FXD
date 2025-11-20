@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FXD Quantum Desktop Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Main visualizer container */
+        #visualizer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Loading screen */
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a14 0%, #050510 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(100, 200, 255, 0.2);
+            border-top-color: #64c8ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 20px;
+            color: #64c8ff;
+            font-size: 14px;
+        }
+
+        .loading-progress {
+            margin-top: 10px;
+            width: 200px;
+            height: 4px;
+            background: rgba(100, 200, 255, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #64c8ff, #50e3c2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Status bar */
+        #status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 32px;
+            background: linear-gradient(90deg, rgba(100, 200, 255, 0.2), rgba(255, 107, 107, 0.2));
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            font-size: 11px;
+            border-top: 1px solid rgba(100, 200, 255, 0.3);
+            z-index: 100;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-item .label {
+            color: #888;
+        }
+
+        .status-item .value {
+            color: #64c8ff;
+            font-weight: 600;
+        }
+
+        /* Minimap */
+        #minimap {
+            position: absolute;
+            bottom: 42px;
+            right: 10px;
+            width: 200px;
+            height: 150px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            z-index: 90;
+        }
+
+        #minimap.hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+
+        /* Performance overlay */
+        #performance-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(20, 20, 30, 0.95);
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 11px;
+            min-width: 180px;
+            backdrop-filter: blur(10px);
+            z-index: 95;
+            transition: all 0.3s ease;
+        }
+
+        #performance-overlay.hidden {
+            opacity: 0;
+            transform: translateX(20px);
+            pointer-events: none;
+        }
+
+        .perf-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .perf-label {
+            color: #888;
+        }
+
+        .perf-value {
+            color: #64c8ff;
+            font-weight: 600;
+        }
+
+        .perf-value.good {
+            color: #50e3c2;
+        }
+
+        .perf-value.warning {
+            color: #ffa500;
+        }
+
+        .perf-value.bad {
+            color: #ff6b6b;
+        }
+
+        /* Search panel */
+        #search-panel {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(20, 20, 30, 0.98);
+            border: 1px solid rgba(100, 200, 255, 0.4);
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 400px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #search-panel.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: all;
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        #search-input:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #64c8ff;
+            box-shadow: 0 0 0 3px rgba(100, 200, 255, 0.2);
+        }
+
+        #search-results {
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            margin: 4px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .search-result-item:hover {
+            background: rgba(100, 200, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        /* Breadcrumbs */
+        #breadcrumbs {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 90;
+        }
+
+        .breadcrumb-item {
+            display: inline-block;
+            color: #64c8ff;
+            margin: 0 4px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .breadcrumb-item:hover {
+            color: #50e3c2;
+        }
+
+        .breadcrumb-separator {
+            color: #444;
+            margin: 0 4px;
+        }
+
+        /* Context menu */
+        #context-menu {
+            position: absolute;
+            background: rgba(30, 30, 40, 0.98);
+            border: 1px solid rgba(100, 200, 255, 0.4);
+            border-radius: 8px;
+            padding: 6px 0;
+            min-width: 180px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 300;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #context-menu.visible {
+            opacity: 1;
+            pointer-events: all;
+            transform: scale(1);
+        }
+
+        .context-menu-item {
+            padding: 8px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(100, 200, 255, 0.2);
+        }
+
+        .context-menu-separator {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 4px 0;
+        }
+
+        .context-menu-shortcut {
+            color: #888;
+            font-size: 11px;
+            margin-left: 20px;
+        }
+
+        /* Tooltip */
+        #tooltip {
+            position: absolute;
+            background: rgba(20, 20, 30, 0.98);
+            border: 1px solid rgba(100, 200, 255, 0.4);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 400;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.2s ease;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+        }
+
+        #tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Shortcuts modal */
+        #shortcuts-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 30, 0.98);
+            border: 1px solid rgba(100, 200, 255, 0.4);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+            z-index: 500;
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #shortcuts-modal.visible {
+            opacity: 1;
+            pointer-events: all;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #shortcuts-modal h2 {
+            color: #64c8ff;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .shortcut-group {
+            margin: 20px 0;
+        }
+
+        .shortcut-group h3 {
+            color: #50e3c2;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .shortcut-desc {
+            color: #ccc;
+        }
+
+        .shortcut-keys {
+            display: flex;
+            gap: 4px;
+        }
+
+        .shortcut-key {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #64c8ff;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        /* Smooth animations */
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 200, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 200, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading screen -->
+    <div id="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Initializing FXD Quantum Visualizer...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- Main visualizer -->
+    <div id="visualizer"></div>
+
+    <!-- Breadcrumbs -->
+    <div id="breadcrumbs">
+        <span class="breadcrumb-item">Root</span>
+    </div>
+
+    <!-- Status bar -->
+    <div id="status-bar">
+        <div class="status-item">
+            <span class="label">File:</span>
+            <span class="value" id="status-file">No file loaded</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Nodes:</span>
+            <span class="value" id="status-nodes">0</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Selected:</span>
+            <span class="value" id="status-selected">0</span>
+        </div>
+        <div class="status-item">
+            <span class="label">FPS:</span>
+            <span class="value" id="status-fps">60</span>
+        </div>
+        <div class="status-item">
+            <span class="label">Zoom:</span>
+            <span class="value" id="status-zoom">100%</span>
+        </div>
+    </div>
+
+    <!-- Minimap -->
+    <div id="minimap" class="hidden">
+        <canvas id="minimap-canvas"></canvas>
+    </div>
+
+    <!-- Performance overlay -->
+    <div id="performance-overlay" class="hidden">
+        <div class="perf-item">
+            <span class="perf-label">FPS:</span>
+            <span class="perf-value good" id="perf-fps">60</span>
+        </div>
+        <div class="perf-item">
+            <span class="perf-label">Frame Time:</span>
+            <span class="perf-value good" id="perf-frame-time">16ms</span>
+        </div>
+        <div class="perf-item">
+            <span class="perf-label">Draw Calls:</span>
+            <span class="perf-value" id="perf-draw-calls">0</span>
+        </div>
+        <div class="perf-item">
+            <span class="perf-label">Triangles:</span>
+            <span class="perf-value" id="perf-triangles">0</span>
+        </div>
+        <div class="perf-item">
+            <span class="perf-label">Memory:</span>
+            <span class="perf-value" id="perf-memory">0 MB</span>
+        </div>
+    </div>
+
+    <!-- Search panel -->
+    <div id="search-panel">
+        <input type="text" id="search-input" placeholder="Search nodes..." />
+        <div id="search-results"></div>
+    </div>
+
+    <!-- Context menu -->
+    <div id="context-menu">
+        <div class="context-menu-item" data-action="copy">
+            <span>Copy Node</span>
+            <span class="context-menu-shortcut">Ctrl+C</span>
+        </div>
+        <div class="context-menu-item" data-action="paste">
+            <span>Paste Node</span>
+            <span class="context-menu-shortcut">Ctrl+V</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="delete">
+            <span>Delete Node</span>
+            <span class="context-menu-shortcut">Del</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="focus">
+            <span>Focus on Node</span>
+            <span class="context-menu-shortcut">F</span>
+        </div>
+        <div class="context-menu-item" data-action="expand">
+            <span>Expand All Children</span>
+        </div>
+    </div>
+
+    <!-- Tooltip -->
+    <div id="tooltip"></div>
+
+    <!-- Keyboard shortcuts modal -->
+    <div id="shortcuts-modal">
+        <button class="modal-close" onclick="hideShortcuts()">&times;</button>
+        <h2>Keyboard Shortcuts</h2>
+
+        <div class="shortcut-group">
+            <h3>File Operations</h3>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Open file</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">O</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Save file</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">S</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Save as</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">Shift</span>
+                    <span class="shortcut-key">S</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="shortcut-group">
+            <h3>Edit Operations</h3>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Undo</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">Z</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Redo</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">Shift</span>
+                    <span class="shortcut-key">Z</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Copy node</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">C</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Paste node</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">V</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Find</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">F</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Select all</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">A</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="shortcut-group">
+            <h3>View Controls</h3>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Zoom in</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">+</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Zoom out</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">-</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Reset zoom</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">0</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Toggle minimap</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">M</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Toggle performance</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">Shift</span>
+                    <span class="shortcut-key">P</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="shortcut-group">
+            <h3>Export</h3>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Export as PNG</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">Shift</span>
+                    <span class="shortcut-key">P</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Export as SVG</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">Ctrl</span>
+                    <span class="shortcut-key">Shift</span>
+                    <span class="shortcut-key">G</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="shortcut-group">
+            <h3>Help</h3>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Show shortcuts</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">F1</span>
+                </div>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-desc">Toggle fullscreen</span>
+                <div class="shortcut-keys">
+                    <span class="shortcut-key">F11</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="electron-visualizer.js"></script>
+</body>
+</html>
