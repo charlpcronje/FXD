@@ -1,12 +1,19 @@
 {
-  "name": "@fx/visualizer",
+  "name": "fxd-quantum",
   "version": "1.0.0",
-  "description": "Ultimate FX Framework Visualizer - The Matrix Meets Developer Tools",
-  "type": "module",
+  "description": "FXD Quantum - Ultimate Desktop App for FXD Framework",
+  "main": "electron/main.js",
+  "type": "commonjs",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron electron/main.js\"",
+    "electron:build": "vite build && electron-builder",
+    "electron:build:win": "vite build && electron-builder --win",
+    "electron:build:mac": "vite build && electron-builder --mac",
+    "electron:build:linux": "vite build && electron-builder --linux",
+    "package": "vite build && electron-builder --dir",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest",
@@ -56,6 +63,10 @@
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
@@ -64,18 +75,53 @@
     "tailwindcss": "^3.4.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
-    "vitest": "^1.0.4"
+    "vitest": "^1.0.4",
+    "wait-on": "^7.2.0"
   },
   "keywords": [
-    "fx",
+    "fxd",
+    "quantum",
+    "electron",
+    "desktop",
     "reactive",
     "visualizer",
-    "debugging",
-    "time-travel",
     "3d",
-    "circuit-board",
     "developer-tools"
   ],
-  "author": "FX Team",
-  "license": "MIT"
+  "author": "FXD Team",
+  "license": "MIT",
+  "build": {
+    "appId": "com.fxd.quantum",
+    "productName": "FXD Quantum",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "build/icon.png",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.developer-tools"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "build/icon.png",
+      "category": "Development"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
 }
